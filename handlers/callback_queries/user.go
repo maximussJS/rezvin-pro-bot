@@ -55,14 +55,14 @@ func (h *userHandler) Handle(ctx context.Context, b *tg_bot.Bot, update *tg_mode
 	switch update.CallbackQuery.Data {
 	case callback_data.UserRegister:
 		h.registerUser(ctx, b, update)
-	case callback_data.UserBack:
-		h.back(ctx, b, update)
 	}
 }
 
 func (h *userHandler) registerUser(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
 	userId := bot_utils.GetUserID(update)
 	chatId := bot_utils.GetChatID(update)
+	firstName := bot_utils.GetFirstName(update)
+	lastName := bot_utils.GetLastName(update)
 
 	user := h.userRepository.GetById(ctx, userId)
 
@@ -85,12 +85,13 @@ func (h *userHandler) registerUser(ctx context.Context, b *tg_bot.Bot, update *t
 
 	h.userRepository.Create(ctx, models.User{
 		Id:         userId,
-		ChatId:     bot_utils.GetChatID(update),
+		ChatId:     chatId,
 		Username:   bot_utils.GetUsername(update),
-		FirstName:  bot_utils.GetFirstName(update),
-		LastName:   bot_utils.GetLastName(update),
+		FirstName:  firstName,
+		LastName:   lastName,
 		IsAdmin:    false,
 		IsApproved: false,
+		IsDeclined: false,
 	})
 
 	bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
@@ -98,14 +99,16 @@ func (h *userHandler) registerUser(ctx context.Context, b *tg_bot.Bot, update *t
 		Text:      h.textService.UserRegisterSuccessMessage(),
 		ParseMode: tg_models.ParseModeMarkdown,
 	})
-}
 
-func (h *userHandler) back(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
-	chatId := bot_utils.GetChatID(update)
+	admins := h.userRepository.GetAdminUsers(ctx)
 
-	bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-		ChatID:    chatId,
-		Text:      h.textService.PressStartMessage(),
-		ParseMode: tg_models.ParseModeMarkdown,
-	})
+	name := fmt.Sprintf("%s %s", firstName, lastName)
+
+	for _, admin := range admins {
+		bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
+			ChatID:    admin.ChatId,
+			Text:      h.textService.NewUserRegisteredMessage(name),
+			ParseMode: tg_models.ParseModeMarkdown,
+		})
+	}
 }

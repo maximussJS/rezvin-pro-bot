@@ -20,6 +20,8 @@ type userRepositoryDependencies struct {
 type IUserRepository interface {
 	Create(ctx context.Context, user models.User) int64
 	GetById(ctx context.Context, id int64) *models.User
+	GetAdminUsers(ctx context.Context) []models.User
+	GetPendingUsers(ctx context.Context, limit, offset int) []models.User
 	UpdateById(ctx context.Context, id int64, user models.User)
 	DeleteById(ctx context.Context, id int64)
 }
@@ -38,6 +40,34 @@ func NewUserRepository(deps userRepositoryDependencies) *userRepository {
 	return &userRepository{
 		db: deps.DB,
 	}
+}
+
+func (r *userRepository) GetPendingUsers(ctx context.Context, limit, offset int) []models.User {
+	var users []models.User
+	err := r.db.WithContext(ctx).
+		Where("is_approved = ?", false).
+		Where("is_admin = ?", false).
+		Where("is_declined = ?", false).
+		Limit(limit).
+		Offset(offset).
+		Find(&users).
+		Error
+
+	utils.PanicIfNotContextError(err)
+
+	return users
+}
+
+func (r *userRepository) GetAdminUsers(ctx context.Context) []models.User {
+	var users []models.User
+	err := r.db.WithContext(ctx).
+		Where("is_admin = ?", true).
+		Find(&users).
+		Error
+
+	utils.PanicIfNotContextError(err)
+
+	return users
 }
 
 func (r *userRepository) Create(ctx context.Context, user models.User) int64 {

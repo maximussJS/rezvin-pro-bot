@@ -60,8 +60,8 @@ func (c *commandHandler) Start(ctx context.Context, b *tg_bot.Bot, update *model
 	if user.IsAdmin {
 		bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
 			ChatID:      chatId,
-			ReplyMarkup: c.inlineKeyboardService.AdminMenu(),
-			Text:        c.textService.AdminStartMessage(),
+			ReplyMarkup: c.inlineKeyboardService.AdminMain(),
+			Text:        c.textService.AdminMainMessage(),
 			ParseMode:   models.ParseModeMarkdown,
 		})
 	} else {
@@ -74,11 +74,19 @@ func (c *commandHandler) Start(ctx context.Context, b *tg_bot.Bot, update *model
 			})
 
 		} else {
-			bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-				ChatID:    chatId,
-				Text:      c.textService.UnapprovedUserExistsMessage(),
-				ParseMode: models.ParseModeMarkdown,
-			})
+			if user.IsDeclined {
+				bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
+					ChatID:    chatId,
+					Text:      c.textService.DeclinedUserExistsMessage(),
+					ParseMode: models.ParseModeMarkdown,
+				})
+			} else {
+				bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
+					ChatID:    chatId,
+					Text:      c.textService.UnapprovedUserExistsMessage(),
+					ParseMode: models.ParseModeMarkdown,
+				})
+			}
 		}
 	}
 }

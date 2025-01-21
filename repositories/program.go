@@ -52,7 +52,7 @@ func (r *programRepository) Create(ctx context.Context, program models.Program) 
 
 func (r *programRepository) GetById(ctx context.Context, id uint) *models.Program {
 	var program models.Program
-	err := r.db.WithContext(ctx).Clauses(clause.Returning{}).Where("id = ?", id).First(&program).Error
+	err := r.db.WithContext(ctx).Clauses(clause.Returning{}).Preload("Exercises").Where("id = ?", id).First(&program).Error
 
 	if err != nil && utils.IsRecordNotFoundError(err) {
 		return nil

@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 	tg_bot "github.com/go-telegram/bot"
+	"rezvin-pro-bot/models"
 	"strings"
 )
 
@@ -12,24 +13,44 @@ type ITextService interface {
 	DefaultMessage() string
 	ErrorMessage() string
 	UnapprovedUserExistsMessage() string
+	DeclinedUserExistsMessage() string
 	ApprovedUserExistsMessage() string
 	UserRegisterSuccessMessage() string
 	RequestTimeoutMessage() string
 	PressStartMessage() string
-	AdminStartMessage() string
-	AdminProgramMenuMessage() string
+	AdminMainMessage() string
+	ProgramMenuMessage() string
 	AdminOnlyMessage() string
+	NewUserRegisteredMessage(name string) string
 
 	EnterProgramNameMessage() string
 	ProgramNameAlreadyExistsMessage(programName string) string
 	ProgramSuccessfullyAddedMessage(programName string) string
 	ProgramSuccessfullyRenamedMessage(oldProgramName, programName string) string
 	SelectProgramMessage() string
-	SelectProgramOptionMessage() string
+	SelectProgramOptionMessage(programName string) string
 
 	NoProgramsMessage() string
 
 	ProgramSuccessfullyDeletedMessage(programName string) string
+
+	EnterExerciseNameMessage() string
+	ExerciseNameAlreadyExistsMessage(exerciseName string) string
+	ExerciseSuccessfullyAddedMessage(exerciseName, programName string) string
+	NoExercisesMessage(programName string) string
+	ExercisesMessage(programName string, exercises []models.Exercise) string
+	ExerciseDeleteMessage(programName string) string
+	ExerciseSuccessfullyDeletedMessage(exerciseName, programName string) string
+
+	NoPendingUsersMessage() string
+	SelectPendingUserMessage() string
+	SelectPendingUserOptionMessage(name string) string
+
+	UserApprovedMessage(name string) string
+	UserApprovedForAdminMessage(name string) string
+
+	UserDeclinedMessage(name string) string
+	UserDeclinedForAdminMessage(name string) string
 }
 
 type textService struct{}
@@ -67,11 +88,11 @@ func (s *textService) UserMenuMessage(firstName, lastName string) string {
 }
 
 func (s *textService) PressStartMessage() string {
-	return "Введи на /start, щоб почати роботу\\."
+	return "Введи /start, щоб почати роботу\\."
 }
 
 func (s *textService) DefaultMessage() string {
-	return "Я не розумію тебе\\.\n Введи на /start, щоб почати роботу\\. "
+	return "Я не розумію тебе\\.\n Введи /start, щоб почати роботу\\. "
 }
 
 func (s *textService) ErrorMessage() string {
@@ -83,7 +104,7 @@ func (s *textService) UnapprovedUserExistsMessage() string {
 }
 
 func (s *textService) ApprovedUserExistsMessage() string {
-	return "Ти вже зареєстрований в базі клієнтів\\. Введи на /start, щоб почати роботу\\."
+	return "Ти вже зареєстрований в базі клієнтів\\. Введи /start, щоб почати роботу\\."
 }
 
 func (s *textService) UserRegisterSuccessMessage() string {
@@ -94,7 +115,7 @@ func (s *textService) RequestTimeoutMessage() string {
 	return "Час відповіді на запит вичерпано. Спробуйте ще раз."
 }
 
-func (s *textService) AdminStartMessage() string {
+func (s *textService) AdminMainMessage() string {
 	var sb strings.Builder
 
 	sb.WriteString("Привіт, *Роман*\\!\n")
@@ -103,7 +124,7 @@ func (s *textService) AdminStartMessage() string {
 	return sb.String()
 }
 
-func (s *textService) AdminProgramMenuMessage() string {
+func (s *textService) ProgramMenuMessage() string {
 	return "Вибери одну з наступних дій для програм\\:\n"
 }
 
@@ -131,8 +152,8 @@ func (s *textService) SelectProgramMessage() string {
 	return "Вибери програму\\."
 }
 
-func (s *textService) SelectProgramOptionMessage() string {
-	return "Вибери одну з наступних дій для програм\\:"
+func (s *textService) SelectProgramOptionMessage(programName string) string {
+	return fmt.Sprintf("Вибери одну з наступних дій для програми \"*%s*\" \\:", programName)
 }
 
 func (s *textService) ProgramSuccessfullyRenamedMessage(oldProgramName, programName string) string {
@@ -141,4 +162,78 @@ func (s *textService) ProgramSuccessfullyRenamedMessage(oldProgramName, programN
 
 func (s *textService) ProgramSuccessfullyDeletedMessage(programName string) string {
 	return fmt.Sprintf("Програма \"*%s*\" успішно видалена\\.", programName)
+}
+
+func (s *textService) EnterExerciseNameMessage() string {
+	return "Введи назву вправи\\."
+}
+
+func (s *textService) ExerciseNameAlreadyExistsMessage(exerciseName string) string {
+	return fmt.Sprintf("Вправа з назвою \"*%s*\" вже існує\\. Cпробуй заново", exerciseName)
+}
+
+func (s *textService) ExerciseSuccessfullyAddedMessage(exerciseName, programName string) string {
+	return fmt.Sprintf("Вправа \"*%s*\" успішно додана до програми \"*%s*\" \\.", exerciseName, programName)
+}
+
+func (s *textService) NoExercisesMessage(programName string) string {
+	return fmt.Sprintf("Вправ не знайдено в програмі \"*%s*\"\\. Додай нову вправу і повтори спробу\\.", programName)
+}
+
+func (s *textService) ExercisesMessage(programName string, exercises []models.Exercise) string {
+	var sb strings.Builder
+
+	sb.WriteString("Вправи програми \"*")
+	sb.WriteString(tg_bot.EscapeMarkdown(programName))
+	sb.WriteString("*\"\\:\n")
+
+	for i, exercise := range exercises {
+		sb.WriteString(fmt.Sprintf("%d\\. %s\n", i+1, exercise.Name))
+	}
+
+	return sb.String()
+}
+
+func (s *textService) ExerciseDeleteMessage(programName string) string {
+	return fmt.Sprintf("Вибери вправу для видалення з програми \"*%s*\"\\.", programName)
+}
+
+func (s *textService) ExerciseSuccessfullyDeletedMessage(exerciseName, programName string) string {
+	return fmt.Sprintf("Вправа \"*%s*\" успішно видалена з програми \"*%s*\"\\.", exerciseName, programName)
+}
+
+func (s *textService) NoPendingUsersMessage() string {
+	return "Немає користувачів, які чекають на підтвердження\\."
+}
+
+func (s *textService) SelectPendingUserMessage() string {
+	return "Вибери користувача для підтвердження\\."
+}
+
+func (s *textService) SelectPendingUserOptionMessage(name string) string {
+	return fmt.Sprintf("Вибери одну з наступних дій для користувача \"*%s*\" \\:", name)
+}
+
+func (s *textService) UserApprovedMessage(name string) string {
+	return fmt.Sprintf("Привіт, *%s*\\! Роман підтвердив твою реєстрацію в базі клієнтів\\. Тепер ти можеш користуватися всіма функціями бота, Введи /start, щоб почати роботу\\.\\.", name)
+}
+
+func (s *textService) UserDeclinedMessage(name string) string {
+	return fmt.Sprintf("Привіт, *%s*\\! Роман відхилив твою реєстрацію в базі клієнтів\\. Якщо у тебе є питання, звертайся до нього\\.", name)
+}
+
+func (s *textService) UserApprovedForAdminMessage(name string) string {
+	return fmt.Sprintf("Реєстрацію користувача \"*%s*\" підтверджено\\.", name)
+}
+
+func (s *textService) DeclinedUserExistsMessage() string {
+	return "Роман відхилив твою реєстрацію\\."
+}
+
+func (s *textService) UserDeclinedForAdminMessage(name string) string {
+	return fmt.Sprintf("Реєстрацію користувача \"*%s*\" відхилено\\.", name)
+}
+
+func (s *textService) NewUserRegisteredMessage(name string) string {
+	return fmt.Sprintf("Новий користувач \"*%s*\" чекає на підтверження\\.", name)
 }

@@ -28,11 +28,13 @@ type botDependencies struct {
 	Logger            logger.ILogger  `name:"Logger"`
 	Config            config.IConfig  `name:"Config"`
 
-	DefaultHandler  handlers.IDefaultHandler         `name:"DefaultHandler"`
-	CommandsHandler handlers.ICommandHandler         `name:"CommandHandler"`
-	UserHandler     callback_queries.IUserHandler    `name:"UserHandler"`
-	AdminHandler    callback_queries.IAdminHandler   `name:"AdminHandler"`
-	ProgramHandler  callback_queries.IProgramHandler `name:"ProgramHandler"`
+	DefaultHandler      handlers.IDefaultHandler              `name:"DefaultHandler"`
+	CommandsHandler     handlers.ICommandHandler              `name:"CommandHandler"`
+	UserHandler         callback_queries.IUserHandler         `name:"UserHandler"`
+	ProgramHandler      callback_queries.IProgramHandler      `name:"ProgramHandler"`
+	ExerciseHandler     callback_queries.IExerciseHandler     `name:"ExerciseHandler"`
+	PendingUsersHandler callback_queries.IPendingUsersHandler `name:"PendingUsersHandler"`
+	BackHandler         callback_queries.IBackHandler         `name:"BackHandler"`
 
 	TextService    services.ITextService        `name:"TextService"`
 	UserRepository repositories.IUserRepository `name:"UserRepository"`
@@ -47,11 +49,13 @@ type bot struct {
 
 	bot *tg_bot.Bot
 
-	commandsHandler handlers.ICommandHandler
-	defaultHandler  handlers.IDefaultHandler
-	userHandler     callback_queries.IUserHandler
-	adminHandler    callback_queries.IAdminHandler
-	programHandler  callback_queries.IProgramHandler
+	commandsHandler     handlers.ICommandHandler
+	defaultHandler      handlers.IDefaultHandler
+	userHandler         callback_queries.IUserHandler
+	programHandler      callback_queries.IProgramHandler
+	exerciseHandler     callback_queries.IExerciseHandler
+	pendingUsersHandler callback_queries.IPendingUsersHandler
+	backHandler         callback_queries.IBackHandler
 
 	textService    services.ITextService
 	userRepository repositories.IUserRepository
@@ -59,17 +63,19 @@ type bot struct {
 
 func NewBot(deps botDependencies) *bot {
 	b := &bot{
-		shutdownWaitGroup: deps.ShutdownWaitGroup,
-		shutdownContext:   deps.ShutdownContext,
-		logger:            deps.Logger,
-		config:            deps.Config,
-		commandsHandler:   deps.CommandsHandler,
-		defaultHandler:    deps.DefaultHandler,
-		adminHandler:      deps.AdminHandler,
-		programHandler:    deps.ProgramHandler,
-		userHandler:       deps.UserHandler,
-		textService:       deps.TextService,
-		userRepository:    deps.UserRepository,
+		shutdownWaitGroup:   deps.ShutdownWaitGroup,
+		shutdownContext:     deps.ShutdownContext,
+		logger:              deps.Logger,
+		config:              deps.Config,
+		commandsHandler:     deps.CommandsHandler,
+		defaultHandler:      deps.DefaultHandler,
+		programHandler:      deps.ProgramHandler,
+		userHandler:         deps.UserHandler,
+		exerciseHandler:     deps.ExerciseHandler,
+		pendingUsersHandler: deps.PendingUsersHandler,
+		backHandler:         deps.BackHandler,
+		textService:         deps.TextService,
+		userRepository:      deps.UserRepository,
 	}
 
 	opts := []tg_bot.Option{
@@ -133,6 +139,8 @@ func (bot *bot) registerHandlers() {
 	bot.registerCommand(constants.CommandStart, bot.commandsHandler.Start, bot.timeoutMiddleware)
 
 	bot.registerCallbackQueryByPrefix(callback_data.UserPrefix, bot.userHandler.Handle, bot.timeoutMiddleware)
-	bot.registerCallbackQueryByPrefix(callback_data.AdminPrefix, bot.adminHandler.Handle, bot.isAdminMiddleware)
 	bot.registerCallbackQueryByPrefix(callback_data.ProgramPrefix, bot.programHandler.Handle, bot.isAdminMiddleware)
+	bot.registerCallbackQueryByPrefix(callback_data.ExercisePrefix, bot.exerciseHandler.Handle, bot.isAdminMiddleware)
+	bot.registerCallbackQueryByPrefix(callback_data.PendingUsersPrefix, bot.pendingUsersHandler.Handle, bot.isAdminMiddleware)
+	bot.registerCallbackQueryByPrefix(callback_data.BackPrefix, bot.backHandler.Handle, bot.timeoutMiddleware)
 }

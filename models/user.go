@@ -13,6 +13,7 @@ type User struct {
 	ChatId     int64     `gorm:"not null" json:"chatId"`
 	IsAdmin    bool      `gorm:"default:false" json:"isAdmin"`
 	IsApproved bool      `gorm:"default:false" json:"isApproved"`
+	IsDeclined bool      `gorm:"default:false" json:"isDeclined"`
 	CreatedAt  time.Time `json:"createdAt"`
 }
 

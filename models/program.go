@@ -8,7 +8,7 @@ import (
 type Program struct {
 	Id        uint       `gorm:"primaryKey;autoIncrement" json:"id" `
 	Name      string     `gorm:"size:255;not null;unique" json:"name"`
-	Exercises []Exercise `gorm:"foreignKey:ProgramId" json:"items"`
+	Exercises []Exercise `gorm:"foreignKey:ProgramId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"exercises"`
 	CreatedAt time.Time  `json:"createdAt"`
 	UpdatedAt time.Time  `json:"updatedAt"`
 }
