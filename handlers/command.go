@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	tg_bot "github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 	"go.uber.org/dig"
@@ -47,10 +48,12 @@ func (c *commandHandler) Start(ctx context.Context, b *tg_bot.Bot, update *model
 	user := c.userRepository.GetById(ctx, userId)
 
 	if user == nil {
+		name := fmt.Sprintf("%s %s", firstName, lastName)
+
 		bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
 			ChatID:      chatId,
 			ReplyMarkup: c.inlineKeyboardService.UserRegister(),
-			Text:        c.textService.UserRegisterMessage(firstName, lastName),
+			Text:        c.textService.UserRegisterMessage(name),
 			ParseMode:   models.ParseModeMarkdown,
 		})
 
@@ -69,7 +72,7 @@ func (c *commandHandler) Start(ctx context.Context, b *tg_bot.Bot, update *model
 			bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
 				ChatID:      chatId,
 				ReplyMarkup: c.inlineKeyboardService.UserMenu(),
-				Text:        c.textService.UserMenuMessage(firstName, lastName),
+				Text:        c.textService.UserMenuMessage(user.GetReadableName()),
 				ParseMode:   models.ParseModeMarkdown,
 			})
 

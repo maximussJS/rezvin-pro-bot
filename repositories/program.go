@@ -15,6 +15,7 @@ type IProgramRepository interface {
 	GetById(ctx context.Context, id uint) *models.Program
 	GetAll(ctx context.Context, limit, offset int) []models.Program
 	GetByName(ctx context.Context, name string) *models.Program
+	GetNotAssignedToUser(ctx context.Context, userId int64, limit, offset int) []models.Program
 	UpdateById(ctx context.Context, id uint, program models.Program)
 	DeleteById(ctx context.Context, id uint)
 }
@@ -40,6 +41,25 @@ func NewProgramRepository(deps programRepositoryDependencies) *programRepository
 	return &programRepository{
 		db: deps.DB,
 	}
+}
+
+func (r *programRepository) GetNotAssignedToUser(ctx context.Context, userId int64, limit, offset int) []models.Program {
+	var programs []models.Program
+
+	subQuery := r.db.WithContext(ctx).Model(&models.UserProgram{}).Select("program_id").Where("user_id = ?", userId)
+
+	err := r.db.
+		WithContext(ctx).
+		Model(&models.Program{}).
+		Where("id NOT IN (?)", subQuery).
+		Limit(limit).
+		Offset(offset).
+		Find(&programs).
+		Error
+
+	utils.PanicIfError(err)
+
+	return programs
 }
 
 func (r *programRepository) Create(ctx context.Context, program models.Program) uint {

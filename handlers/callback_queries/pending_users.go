@@ -48,17 +48,6 @@ func NewPendingUsersHandler(deps pendingUsersHandlerDependencies) *pendingUsersH
 }
 
 func (h *pendingUsersHandler) Handle(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
-	answerResult := bot_utils.MustAnswerCallbackQuery(ctx, b, update)
-
-	if !answerResult {
-		h.logger.Error(fmt.Sprintf("Failed to answer callback query: %s", update.CallbackQuery.ID))
-		bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-			ChatID: update.CallbackQuery.Message.Message.Chat.ID,
-			Text:   h.textService.ErrorMessage(),
-		})
-		return
-	}
-
 	callbackQueryData := update.CallbackQuery.Data
 
 	if strings.HasPrefix(callbackQueryData, callback_data.PendingUsersSelected) {
@@ -149,17 +138,15 @@ func (h *pendingUsersHandler) approve(ctx context.Context, b *tg_bot.Bot, update
 		IsDeclined: false,
 	})
 
-	username := fmt.Sprintf("%s %s", user.FirstName, user.LastName)
-
 	bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
 		ChatID:    user.ChatId,
-		Text:      h.textService.UserApprovedMessage(username),
+		Text:      h.textService.UserApprovedMessage(user.GetReadableName()),
 		ParseMode: tg_models.ParseModeMarkdown,
 	})
 
 	bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
 		ChatID:    chatId,
-		Text:      h.textService.UserApprovedForAdminMessage(username),
+		Text:      h.textService.UserApprovedForAdminMessage(user.GetReadableName()),
 		ParseMode: tg_models.ParseModeMarkdown,
 	})
 }
@@ -185,17 +172,15 @@ func (h *pendingUsersHandler) decline(ctx context.Context, b *tg_bot.Bot, update
 		IsApproved: false,
 	})
 
-	username := fmt.Sprintf("%s %s", user.FirstName, user.LastName)
-
 	bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
 		ChatID:    user.ChatId,
-		Text:      h.textService.UserDeclinedMessage(username),
+		Text:      h.textService.UserDeclinedMessage(user.GetReadableName()),
 		ParseMode: tg_models.ParseModeMarkdown,
 	})
 
 	bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
 		ChatID:    chatId,
-		Text:      h.textService.UserDeclinedForAdminMessage(username),
+		Text:      h.textService.UserDeclinedForAdminMessage(user.GetReadableName()),
 		ParseMode: tg_models.ParseModeMarkdown,
 	})
 }

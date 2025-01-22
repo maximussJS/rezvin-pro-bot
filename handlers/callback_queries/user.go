@@ -18,7 +18,7 @@ type IUserHandler interface {
 	Handle(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update)
 }
 
-type userDependencies struct {
+type userHandlerDependencies struct {
 	dig.In
 
 	Logger         logger.ILogger               `name:"Logger"`
@@ -32,7 +32,7 @@ type userHandler struct {
 	userRepository repositories.IUserRepository
 }
 
-func NewUserHandler(deps userDependencies) *userHandler {
+func NewUserHandler(deps userHandlerDependencies) *userHandler {
 	return &userHandler{
 		logger:         deps.Logger,
 		textService:    deps.TextService,
@@ -41,17 +41,6 @@ func NewUserHandler(deps userDependencies) *userHandler {
 }
 
 func (h *userHandler) Handle(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
-	answerResult := bot_utils.MustAnswerCallbackQuery(ctx, b, update)
-
-	if !answerResult {
-		h.logger.Error(fmt.Sprintf("Failed to answer callback query: %s", update.CallbackQuery.ID))
-		bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-			ChatID: update.CallbackQuery.Message.Message.Chat.ID,
-			Text:   h.textService.ErrorMessage(),
-		})
-		return
-	}
-
 	switch update.CallbackQuery.Data {
 	case callback_data.UserRegister:
 		h.registerUser(ctx, b, update)

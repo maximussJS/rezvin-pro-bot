@@ -21,6 +21,7 @@ type IUserRepository interface {
 	Create(ctx context.Context, user models.User) int64
 	GetById(ctx context.Context, id int64) *models.User
 	GetAdminUsers(ctx context.Context) []models.User
+	GetClients(ctx context.Context, limit, offset int) []models.User
 	GetPendingUsers(ctx context.Context, limit, offset int) []models.User
 	UpdateById(ctx context.Context, id int64, user models.User)
 	DeleteById(ctx context.Context, id int64)
@@ -46,6 +47,22 @@ func (r *userRepository) GetPendingUsers(ctx context.Context, limit, offset int)
 	var users []models.User
 	err := r.db.WithContext(ctx).
 		Where("is_approved = ?", false).
+		Where("is_admin = ?", false).
+		Where("is_declined = ?", false).
+		Limit(limit).
+		Offset(offset).
+		Find(&users).
+		Error
+
+	utils.PanicIfNotContextError(err)
+
+	return users
+}
+
+func (r *userRepository) GetClients(ctx context.Context, limit, offset int) []models.User {
+	var users []models.User
+	err := r.db.WithContext(ctx).
+		Where("is_approved = ?", true).
 		Where("is_admin = ?", false).
 		Where("is_declined = ?", false).
 		Limit(limit).

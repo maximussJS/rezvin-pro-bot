@@ -15,6 +15,11 @@ type IInlineKeyboardService interface {
 	PendingUsersList(users []models.User) *tg_models.InlineKeyboardMarkup
 	PendingUserDecide(users models.User) *tg_models.InlineKeyboardMarkup
 	ProgramList(programs []models.Program) *tg_models.InlineKeyboardMarkup
+	ClientList(clients []models.User) *tg_models.InlineKeyboardMarkup
+	ClientSelectedMenu(clientId int64) *tg_models.InlineKeyboardMarkup
+	ClientProgramList(clientId int64, programs []models.UserProgram) *tg_models.InlineKeyboardMarkup
+	ProgramForClientList(clientId int64, programs []models.Program) *tg_models.InlineKeyboardMarkup
+	ClientSelectedProgramMenu(clientId int64, programId uint) *tg_models.InlineKeyboardMarkup
 	ProgramSelectedMenu(programId uint) *tg_models.InlineKeyboardMarkup
 	ProgramExerciseDeleteList(programId uint, exercises []models.Exercise) *tg_models.InlineKeyboardMarkup
 }
@@ -33,6 +38,9 @@ func (s *inlineKeyboardService) AdminMain() *tg_models.InlineKeyboardMarkup {
 			},
 			{
 				{Text: "⏳ Підтвердження клієнтів", CallbackData: callback_data.PendingUsersList},
+			},
+			{
+				{Text: "🏋️ Клієнти", CallbackData: callback_data.ClientList},
 			},
 			{
 				{Text: "🔙 Назад", CallbackData: callback_data.BackToStart},
@@ -160,15 +168,9 @@ func (s *inlineKeyboardService) PendingUsersList(users []models.User) *tg_models
 	userKb := make([][]tg_models.InlineKeyboardButton, 0, len(users))
 
 	for _, user := range users {
-		text := fmt.Sprintf("%s %s", user.FirstName, user.LastName)
-
-		if user.Username != "" {
-			text += fmt.Sprintf(" @%s", user.Username)
-		}
-
 		userKb = append(userKb, []tg_models.InlineKeyboardButton{
 			{
-				Text:         text,
+				Text:         user.GetReadableName(),
 				CallbackData: fmt.Sprintf("%s:%d", callback_data.PendingUsersSelected, user.Id),
 			},
 		})
@@ -196,5 +198,103 @@ func (s *inlineKeyboardService) PendingUserDecide(users models.User) *tg_models.
 				{Text: "🔙 Назад", CallbackData: callback_data.BackToPendingUsersList},
 			},
 		},
+	}
+}
+
+func (s *inlineKeyboardService) ClientList(clients []models.User) *tg_models.InlineKeyboardMarkup {
+	clientKb := make([][]tg_models.InlineKeyboardButton, 0, len(clients))
+
+	for _, client := range clients {
+		clientKb = append(clientKb, []tg_models.InlineKeyboardButton{
+			{
+				Text:         client.GetReadableName(),
+				CallbackData: fmt.Sprintf("%s:%d", callback_data.ClientSelected, client.Id),
+			},
+		})
+	}
+
+	clientKb = append(clientKb, []tg_models.InlineKeyboardButton{
+		{Text: "🔙 Назад", CallbackData: callback_data.BackToMain},
+	})
+
+	return &tg_models.InlineKeyboardMarkup{
+		InlineKeyboard: clientKb,
+	}
+}
+
+func (s *inlineKeyboardService) ClientSelectedMenu(clientId int64) *tg_models.InlineKeyboardMarkup {
+	return &tg_models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]tg_models.InlineKeyboardButton{
+			{
+				{Text: "📋 Дивитись програми клієнта", CallbackData: fmt.Sprintf("%s:%d", callback_data.ClientProgramList, clientId)},
+			},
+			{
+				{Text: "➕ Додати програму для клієнта", CallbackData: fmt.Sprintf("%s:%d", callback_data.ClientProgramAdd, clientId)},
+			},
+			{
+				{Text: "🔙 Назад", CallbackData: callback_data.BackToClientList},
+			},
+		},
+	}
+}
+
+func (s *inlineKeyboardService) ClientSelectedProgramMenu(clientId int64, programId uint) *tg_models.InlineKeyboardMarkup {
+	return &tg_models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]tg_models.InlineKeyboardButton{
+			{
+				{Text: "🚀 Переглянути результати", CallbackData: fmt.Sprintf("%s:%d:%d", callback_data.ClientResultList, clientId, programId)},
+			},
+			{
+				{Text: "✍️ Внести результати", CallbackData: fmt.Sprintf("%s:%d:%d", callback_data.ClientResultModify, clientId, programId)},
+			},
+			{
+				{Text: "➖ Видалити програму", CallbackData: fmt.Sprintf("%s:%d:%d", callback_data.ClientProgramDelete, clientId, programId)},
+			},
+			{
+				{Text: "🔙 Назад", CallbackData: callback_data.BackToClientList},
+			},
+		},
+	}
+}
+
+func (s *inlineKeyboardService) ClientProgramList(clientId int64, programs []models.UserProgram) *tg_models.InlineKeyboardMarkup {
+	programKb := make([][]tg_models.InlineKeyboardButton, 0, len(programs))
+
+	for _, program := range programs {
+		programKb = append(programKb, []tg_models.InlineKeyboardButton{
+			{
+				Text:         program.Program.Name,
+				CallbackData: fmt.Sprintf("%s:%d:%d", callback_data.ClientProgramSelected, clientId, program.ProgramId),
+			},
+		})
+	}
+
+	programKb = append(programKb, []tg_models.InlineKeyboardButton{
+		{Text: "🔙 Назад", CallbackData: fmt.Sprintf("%s:%d", callback_data.ClientSelected, clientId)},
+	})
+
+	return &tg_models.InlineKeyboardMarkup{
+		InlineKeyboard: programKb,
+	}
+}
+
+func (s *inlineKeyboardService) ProgramForClientList(clientId int64, programs []models.Program) *tg_models.InlineKeyboardMarkup {
+	programKb := make([][]tg_models.InlineKeyboardButton, 0, len(programs))
+
+	for _, program := range programs {
+		programKb = append(programKb, []tg_models.InlineKeyboardButton{
+			{
+				Text:         program.Name,
+				CallbackData: fmt.Sprintf("%s:%d:%d", callback_data.ClientProgramAssign, clientId, program.Id),
+			},
+		})
+	}
+
+	programKb = append(programKb, []tg_models.InlineKeyboardButton{
+		{Text: "🔙 Назад", CallbackData: fmt.Sprintf("%s:%d", callback_data.ClientSelected, clientId)},
+	})
+
+	return &tg_models.InlineKeyboardMarkup{
+		InlineKeyboard: programKb,
 	}
 }

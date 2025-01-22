@@ -87,6 +87,16 @@ func getRepositoriesDependencies() []Dependency {
 			Interface:   new(repositories.IExerciseRepository),
 			Token:       "ExerciseRepository",
 		},
+		{
+			Constructor: repositories.NewUserProgramRepository,
+			Interface:   new(repositories.IUserProgramRepository),
+			Token:       "UserProgramRepository",
+		},
+		{
+			Constructor: repositories.NewUserExerciseRecordRepository,
+			Interface:   new(repositories.IUserExerciseRecordRepository),
+			Token:       "UserExerciseRecordRepository",
+		},
 	}
 }
 
@@ -146,6 +156,11 @@ func getHandlersDependencies() []Dependency {
 			Constructor: callback_queries.NewBackHandler,
 			Interface:   new(callback_queries.IBackHandler),
 			Token:       "BackHandler",
+		},
+		{
+			Constructor: callback_queries.NewClientHandler,
+			Interface:   new(callback_queries.IClientHandler),
+			Token:       "ClientHandler",
 		},
 	}
 }

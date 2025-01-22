@@ -35,6 +35,7 @@ type botDependencies struct {
 	ExerciseHandler     callback_queries.IExerciseHandler     `name:"ExerciseHandler"`
 	PendingUsersHandler callback_queries.IPendingUsersHandler `name:"PendingUsersHandler"`
 	BackHandler         callback_queries.IBackHandler         `name:"BackHandler"`
+	ClientHandler       callback_queries.IClientHandler       `name:"ClientHandler"`
 
 	TextService    services.ITextService        `name:"TextService"`
 	UserRepository repositories.IUserRepository `name:"UserRepository"`
@@ -56,6 +57,7 @@ type bot struct {
 	exerciseHandler     callback_queries.IExerciseHandler
 	pendingUsersHandler callback_queries.IPendingUsersHandler
 	backHandler         callback_queries.IBackHandler
+	clientHandler       callback_queries.IClientHandler
 
 	textService    services.ITextService
 	userRepository repositories.IUserRepository
@@ -74,6 +76,7 @@ func NewBot(deps botDependencies) *bot {
 		exerciseHandler:     deps.ExerciseHandler,
 		pendingUsersHandler: deps.PendingUsersHandler,
 		backHandler:         deps.BackHandler,
+		clientHandler:       deps.ClientHandler,
 		textService:         deps.TextService,
 		userRepository:      deps.UserRepository,
 	}
@@ -138,9 +141,10 @@ func (bot *bot) registerHandlers() {
 
 	bot.registerCommand(constants.CommandStart, bot.commandsHandler.Start, bot.timeoutMiddleware)
 
-	bot.registerCallbackQueryByPrefix(callback_data.UserPrefix, bot.userHandler.Handle, bot.timeoutMiddleware)
-	bot.registerCallbackQueryByPrefix(callback_data.ProgramPrefix, bot.programHandler.Handle, bot.isAdminMiddleware)
-	bot.registerCallbackQueryByPrefix(callback_data.ExercisePrefix, bot.exerciseHandler.Handle, bot.isAdminMiddleware)
-	bot.registerCallbackQueryByPrefix(callback_data.PendingUsersPrefix, bot.pendingUsersHandler.Handle, bot.isAdminMiddleware)
-	bot.registerCallbackQueryByPrefix(callback_data.BackPrefix, bot.backHandler.Handle, bot.timeoutMiddleware)
+	bot.registerCallbackQueryByPrefix(callback_data.UserPrefix, bot.userHandler.Handle, bot.answerCallbackQueryMiddleware, bot.timeoutMiddleware)
+	bot.registerCallbackQueryByPrefix(callback_data.ProgramPrefix, bot.programHandler.Handle, bot.answerCallbackQueryMiddleware, bot.isAdminMiddleware)
+	bot.registerCallbackQueryByPrefix(callback_data.ExercisePrefix, bot.exerciseHandler.Handle, bot.answerCallbackQueryMiddleware, bot.isAdminMiddleware)
+	bot.registerCallbackQueryByPrefix(callback_data.PendingUsersPrefix, bot.pendingUsersHandler.Handle, bot.answerCallbackQueryMiddleware, bot.isAdminMiddleware)
+	bot.registerCallbackQueryByPrefix(callback_data.BackPrefix, bot.backHandler.Handle, bot.answerCallbackQueryMiddleware, bot.isAdminMiddleware)
+	bot.registerCallbackQueryByPrefix(callback_data.ClientPrefix, bot.clientHandler.Handle, bot.answerCallbackQueryMiddleware, bot.isAdminMiddleware)
 }

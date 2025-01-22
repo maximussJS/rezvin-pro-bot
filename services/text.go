@@ -8,8 +8,8 @@ import (
 )
 
 type ITextService interface {
-	UserRegisterMessage(firstName, lastName string) string
-	UserMenuMessage(firstName, lastName string) string
+	UserRegisterMessage(name string) string
+	UserMenuMessage(name string) string
 	DefaultMessage() string
 	ErrorMessage() string
 	UnapprovedUserExistsMessage() string
@@ -51,6 +51,15 @@ type ITextService interface {
 
 	UserDeclinedMessage(name string) string
 	UserDeclinedForAdminMessage(name string) string
+
+	NoClientsMessage() string
+	SelectClientMessage() string
+	SelectClientOptionMessage(name string) string
+	NoClientProgramsMessage(name string) string
+	SelectClientProgramMessage(name string) string
+	ClientProgramAssignedMessage(name, programName string) string
+	NoProgramsForClientMessage(name string) string
+	ClientProgramAlreadyAssignedMessage(name, programName string) string
 }
 
 type textService struct{}
@@ -59,11 +68,11 @@ func NewTextService() *textService {
 	return &textService{}
 }
 
-func (s *textService) UserRegisterMessage(firstName, lastName string) string {
+func (s *textService) UserRegisterMessage(name string) string {
 	var sb strings.Builder
 
 	sb.WriteString("Привіт, *")
-	sb.WriteString(tg_bot.EscapeMarkdown(fmt.Sprintf("%s %s", firstName, lastName)))
+	sb.WriteString(tg_bot.EscapeMarkdown(fmt.Sprintf("%s", name)))
 	sb.WriteString("*")
 	sb.WriteString("\\!\n")
 	sb.WriteString("Тебе не має в базі клієнтів\\. \n")
@@ -74,11 +83,11 @@ func (s *textService) UserRegisterMessage(firstName, lastName string) string {
 	return sb.String()
 }
 
-func (s *textService) UserMenuMessage(firstName, lastName string) string {
+func (s *textService) UserMenuMessage(name string) string {
 	var sb strings.Builder
 
 	sb.WriteString("Привіт, *")
-	sb.WriteString(tg_bot.EscapeMarkdown(fmt.Sprintf("%s %s", firstName, lastName)))
+	sb.WriteString(tg_bot.EscapeMarkdown(fmt.Sprintf("%s", name)))
 	sb.WriteString("*")
 	sb.WriteString("\\!\n")
 	sb.WriteString("Натисни \"🚀 Переглянути результати\", щоб переглянути свої результати\\.\n")
@@ -236,4 +245,36 @@ func (s *textService) UserDeclinedForAdminMessage(name string) string {
 
 func (s *textService) NewUserRegisteredMessage(name string) string {
 	return fmt.Sprintf("Новий користувач \"*%s*\" чекає на підтверження\\.", name)
+}
+
+func (s *textService) NoClientsMessage() string {
+	return "Клієнтів не знайдено\\."
+}
+
+func (s *textService) SelectClientMessage() string {
+	return "Вибери клієнта\\."
+}
+
+func (s *textService) SelectClientOptionMessage(name string) string {
+	return fmt.Sprintf("Вибери одну з наступних дій для клієнта \"*%s*\" \\:", name)
+}
+
+func (s *textService) NoClientProgramsMessage(name string) string {
+	return fmt.Sprintf("Програм не знайдено для клієнта \"*%s*\"\\. Додай програму клієнту спочатку\\.", name)
+}
+
+func (s *textService) NoProgramsForClientMessage(name string) string {
+	return fmt.Sprintf("Програм не знайдено для клієнта \"*%s*\"\\. Схоже користувач має всі програми\\.", name)
+}
+
+func (s *textService) SelectClientProgramMessage(name string) string {
+	return fmt.Sprintf("Вибери програму клієнта \"*%s*\"\\.", name)
+}
+
+func (s *textService) ClientProgramAlreadyAssignedMessage(name, programName string) string {
+	return fmt.Sprintf("Програма \"*%s*\" вже призначена клієнту \"*%s*\"\\. Спробуй іншу програму\\.", programName, name)
+}
+
+func (s *textService) ClientProgramAssignedMessage(name, programName string) string {
+	return fmt.Sprintf("Програма \"*%s*\" успішно призначена клієнту \"*%s*\"\\.", programName, name)
 }

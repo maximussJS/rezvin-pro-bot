@@ -96,6 +96,20 @@ func GetSelectedUserId(update *models.Update) int64 {
 	return int64(valueInt)
 }
 
+func GetClientProgramId(update *models.Update) uint {
+	if update.CallbackQuery == nil {
+		panic(fmt.Sprintf("unable to get program id from update: %v", update))
+	}
+
+	value := strings.Split(update.CallbackQuery.Data, ":")[2]
+
+	valueInt, err := strconv.Atoi(value)
+
+	utils.PanicIfError(err)
+
+	return uint(valueInt)
+}
+
 func GetExerciseId(update *models.Update) uint {
 	if update.CallbackQuery == nil {
 		panic(fmt.Sprintf("unable to get exercise id from update: %v", update))

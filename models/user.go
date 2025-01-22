@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"gorm.io/gorm"
 	"time"
 )
@@ -24,4 +25,14 @@ func (u *User) TableName() string {
 func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
 	u.CreatedAt = time.Now()
 	return
+}
+
+func (u *User) GetReadableName() string {
+	text := fmt.Sprintf("%s %s", u.FirstName, u.LastName)
+
+	if u.Username != "" {
+		text += fmt.Sprintf(" @%s", u.Username)
+	}
+
+	return text
 }

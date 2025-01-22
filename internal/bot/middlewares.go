@@ -9,6 +9,23 @@ import (
 	"runtime"
 )
 
+func (bot *bot) answerCallbackQueryMiddleware(next tg_bot.HandlerFunc) tg_bot.HandlerFunc {
+	return func(ctx context.Context, b *tg_bot.Bot, update *models.Update) {
+		answerResult := bot_utils.MustAnswerCallbackQuery(ctx, b, update)
+
+		if !answerResult {
+			bot.logger.Error(fmt.Sprintf("Failed to answer callback query: %s", update.CallbackQuery.ID))
+			bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
+				ChatID: update.CallbackQuery.Message.Message.Chat.ID,
+				Text:   bot.textService.ErrorMessage(),
+			})
+			return
+		}
+
+		next(ctx, b, update)
+	}
+}
+
 func (bot *bot) isAdminMiddleware(next tg_bot.HandlerFunc) tg_bot.HandlerFunc {
 	return func(ctx context.Context, b *tg_bot.Bot, update *models.Update) {
 		chatID := bot_utils.GetChatID(update)

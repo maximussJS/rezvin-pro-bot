@@ -52,17 +52,6 @@ func NewExerciseHandler(deps exerciseHandlerDependencies) *exerciseHandler {
 }
 
 func (h *exerciseHandler) Handle(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
-	answerResult := bot_utils.MustAnswerCallbackQuery(ctx, b, update)
-
-	if !answerResult {
-		h.logger.Error(fmt.Sprintf("Failed to answer callback query: %s", update.CallbackQuery.ID))
-		bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-			ChatID: update.CallbackQuery.Message.Message.Chat.ID,
-			Text:   h.textService.ErrorMessage(),
-		})
-		return
-	}
-
 	callbackDataQuery := update.CallbackQuery.Data
 
 	if strings.HasPrefix(callbackDataQuery, callback_data.ExerciseAdd) {

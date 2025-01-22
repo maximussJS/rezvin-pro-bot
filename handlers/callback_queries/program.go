@@ -19,7 +19,7 @@ type IProgramHandler interface {
 	Handle(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update)
 }
 
-type programDependencies struct {
+type programHandlerDependencies struct {
 	dig.In
 
 	Logger                logger.ILogger                  `name:"Logger"`
@@ -38,7 +38,7 @@ type programHandler struct {
 	programRepository     repositories.IProgramRepository
 }
 
-func NewProgramHandler(deps programDependencies) *programHandler {
+func NewProgramHandler(deps programHandlerDependencies) *programHandler {
 	return &programHandler{
 		logger:                deps.Logger,
 		textService:           deps.TextService,
@@ -49,17 +49,6 @@ func NewProgramHandler(deps programDependencies) *programHandler {
 }
 
 func (h *programHandler) Handle(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
-	answerResult := bot_utils.MustAnswerCallbackQuery(ctx, b, update)
-
-	if !answerResult {
-		h.logger.Error(fmt.Sprintf("Failed to answer callback query: %s", update.CallbackQuery.ID))
-		bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-			ChatID: update.CallbackQuery.Message.Message.Chat.ID,
-			Text:   h.textService.ErrorMessage(),
-		})
-		return
-	}
-
 	callbackDataQuery := update.CallbackQuery.Data
 
 	if strings.HasPrefix(callbackDataQuery, callback_data.ProgramSelected) {
