@@ -17,9 +17,11 @@ type userProgramRepositoryDependencies struct {
 }
 
 type IUserProgramRepository interface {
-	Create(ctx context.Context, userProgram models.UserProgram)
+	Create(ctx context.Context, userProgram models.UserProgram) uint
+	GetById(ctx context.Context, id uint) *models.UserProgram
 	GetByUserIdAndProgramId(ctx context.Context, userId int64, programId uint) *models.UserProgram
 	GetByUserId(ctx context.Context, userId int64, limit, offset int) []models.UserProgram
+	DeleteById(ctx context.Context, id uint)
 	DeleteByUserIdAndProgramId(ctx context.Context, userId int64, programId uint)
 }
 
@@ -39,10 +41,30 @@ func NewUserProgramRepository(deps userProgramRepositoryDependencies) *userProgr
 	}
 }
 
-func (r *userProgramRepository) Create(ctx context.Context, userProgram models.UserProgram) {
+func (r *userProgramRepository) Create(ctx context.Context, userProgram models.UserProgram) uint {
 	err := r.db.WithContext(ctx).Create(&userProgram).Error
 
 	utils.PanicIfNotContextError(err)
+
+	return userProgram.Id
+}
+
+func (r *userProgramRepository) GetById(ctx context.Context, id uint) *models.UserProgram {
+	var userProgram models.UserProgram
+
+	err := r.db.WithContext(ctx).
+		Preload("Program").
+		Where("id = ?", id).
+		First(&userProgram).
+		Error
+
+	if err != nil && utils.IsRecordNotFoundError(err) {
+		return nil
+	}
+
+	utils.PanicIfNotRecordNotFound(err)
+
+	return &userProgram
 }
 
 func (r *userProgramRepository) GetByUserIdAndProgramId(ctx context.Context, userId int64, programId uint) *models.UserProgram {
@@ -78,6 +100,16 @@ func (r *userProgramRepository) GetByUserId(ctx context.Context, userId int64, l
 	utils.PanicIfNotContextError(err)
 
 	return userPrograms
+}
+
+func (r *userProgramRepository) DeleteById(ctx context.Context, id uint) {
+	err := r.db.
+		WithContext(ctx).
+		Where("id = ?", id).
+		Delete(&models.UserProgram{}).
+		Error
+
+	utils.PanicIfNotContextError(err)
 }
 
 func (r *userProgramRepository) DeleteByUserIdAndProgramId(ctx context.Context, userId int64, programId uint) {

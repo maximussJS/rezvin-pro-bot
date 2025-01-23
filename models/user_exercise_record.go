@@ -6,13 +6,17 @@ import (
 )
 
 type UserExerciseRecord struct {
-	Id            uint `gorm:"primaryKey;autoIncrement" json:"id"`
-	UserProgramId uint `gorm:"index:idx_record,unique" json:"userProgramId"`
-	ExerciseId    uint `gorm:"index:idx_record,unique" json:"exerciseId"`
-	Reps          uint `gorm:"index:idx_record,unique" json:"reps"`
+	Id            uint      `gorm:"primaryKey;autoIncrement" json:"id"`
+	UserProgramId uint      `gorm:"index:idx_record,unique" json:"userProgramId"`
+	ExerciseId    uint      `gorm:"index:idx_record,unique" json:"exerciseId"`
+	Reps          uint      `gorm:"index:idx_record,unique" json:"reps"`
+	Weight        int       `gorm:"not null" json:"weight"`
+	Exercise      Exercise  `gorm:"foreignKey:ExerciseId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"exercise"`
+	LoggedAt      time.Time `json:"loggedAt"`
+}
 
-	Weight   float64   `gorm:"not null" json:"weight"`
-	LoggedAt time.Time `json:"loggedAt"`
+func (u *UserExerciseRecord) Name() string {
+	return u.Exercise.Name
 }
 
 func (u *UserExerciseRecord) TableName() string {

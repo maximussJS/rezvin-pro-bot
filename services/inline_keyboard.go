@@ -1,10 +1,11 @@
 package services
 
 import (
-	"fmt"
 	tg_models "github.com/go-telegram/bot/models"
 	"rezvin-pro-bot/constants/callback_data"
 	"rezvin-pro-bot/models"
+	"rezvin-pro-bot/types/bot"
+	bot_utils "rezvin-pro-bot/utils/bot"
 )
 
 type IInlineKeyboardService interface {
@@ -19,7 +20,7 @@ type IInlineKeyboardService interface {
 	ClientSelectedMenu(clientId int64) *tg_models.InlineKeyboardMarkup
 	ClientProgramList(clientId int64, programs []models.UserProgram) *tg_models.InlineKeyboardMarkup
 	ProgramForClientList(clientId int64, programs []models.Program) *tg_models.InlineKeyboardMarkup
-	ClientSelectedProgramMenu(clientId int64, programId uint) *tg_models.InlineKeyboardMarkup
+	ClientSelectedProgramMenu(clientId int64, program models.UserProgram) *tg_models.InlineKeyboardMarkup
 	ProgramSelectedMenu(programId uint) *tg_models.InlineKeyboardMarkup
 	ProgramExerciseDeleteList(programId uint, exercises []models.Exercise) *tg_models.InlineKeyboardMarkup
 }
@@ -98,10 +99,13 @@ func (s *inlineKeyboardService) ProgramList(programs []models.Program) *tg_model
 	programKb := make([][]tg_models.InlineKeyboardButton, 0, len(programs))
 
 	for _, program := range programs {
+		params := bot_types.NewEmptyParams()
+
+		params.ProgramId = program.Id
 		programKb = append(programKb, []tg_models.InlineKeyboardButton{
 			{
 				Text:         program.Name,
-				CallbackData: fmt.Sprintf("%s:%d", callback_data.ProgramSelected, program.Id),
+				CallbackData: bot_utils.AddParamsToQueryString(callback_data.ProgramSelected, params),
 			},
 		})
 	}
@@ -116,22 +120,26 @@ func (s *inlineKeyboardService) ProgramList(programs []models.Program) *tg_model
 }
 
 func (s *inlineKeyboardService) ProgramSelectedMenu(programId uint) *tg_models.InlineKeyboardMarkup {
+	params := bot_types.NewEmptyParams()
+
+	params.ProgramId = programId
+
 	return &tg_models.InlineKeyboardMarkup{
 		InlineKeyboard: [][]tg_models.InlineKeyboardButton{
 			{
-				{Text: "📋 Список вправ", CallbackData: fmt.Sprintf("%s:%d", callback_data.ExerciseList, programId)},
+				{Text: "📋 Список вправ", CallbackData: bot_utils.AddParamsToQueryString(callback_data.ExerciseList, params)},
 			},
 			{
-				{Text: "➕ Додати вправу", CallbackData: fmt.Sprintf("%s:%d", callback_data.ExerciseAdd, programId)},
+				{Text: "➕ Додати вправу", CallbackData: bot_utils.AddParamsToQueryString(callback_data.ExerciseAdd, params)},
 			},
 			{
-				{Text: "➖ Видалити вправу", CallbackData: fmt.Sprintf("%s:%d", callback_data.ExerciseDelete, programId)},
+				{Text: "➖ Видалити вправу", CallbackData: bot_utils.AddParamsToQueryString(callback_data.ExerciseDelete, params)},
 			},
 			{
-				{Text: "📝 Перейменувати програму", CallbackData: fmt.Sprintf("%s:%d", callback_data.ProgramRename, programId)},
+				{Text: "📝 Перейменувати програму", CallbackData: bot_utils.AddParamsToQueryString(callback_data.ProgramRename, params)},
 			},
 			{
-				{Text: "❌ Видалити програму", CallbackData: fmt.Sprintf("%s:%d", callback_data.ProgramDelete, programId)},
+				{Text: "❌ Видалити програму", CallbackData: bot_utils.AddParamsToQueryString(callback_data.ProgramDelete, params)},
 			},
 			{
 				{Text: "🔙 Назад", CallbackData: callback_data.BackToProgramList},
@@ -144,10 +152,15 @@ func (s *inlineKeyboardService) ProgramExerciseDeleteList(programId uint, exerci
 	exerciseKb := make([][]tg_models.InlineKeyboardButton, 0, len(exercises))
 
 	for _, exercise := range exercises {
+		params := bot_types.NewEmptyParams()
+
+		params.ProgramId = programId
+		params.ExerciseId = exercise.Id
+
 		exerciseKb = append(exerciseKb, []tg_models.InlineKeyboardButton{
 			{
 				Text:         exercise.Name,
-				CallbackData: fmt.Sprintf("%s:%d:%d", callback_data.ExerciseDeleteItem, programId, exercise.Id),
+				CallbackData: bot_utils.AddParamsToQueryString(callback_data.ExerciseDeleteItem, params),
 			},
 		})
 	}
@@ -168,10 +181,14 @@ func (s *inlineKeyboardService) PendingUsersList(users []models.User) *tg_models
 	userKb := make([][]tg_models.InlineKeyboardButton, 0, len(users))
 
 	for _, user := range users {
+		params := bot_types.NewEmptyParams()
+
+		params.UserId = user.Id
+
 		userKb = append(userKb, []tg_models.InlineKeyboardButton{
 			{
-				Text:         user.GetReadableName(),
-				CallbackData: fmt.Sprintf("%s:%d", callback_data.PendingUsersSelected, user.Id),
+				Text:         user.GetPrivateName(),
+				CallbackData: bot_utils.AddParamsToQueryString(callback_data.PendingUsersSelected, params),
 			},
 		})
 	}
@@ -186,13 +203,17 @@ func (s *inlineKeyboardService) PendingUsersList(users []models.User) *tg_models
 }
 
 func (s *inlineKeyboardService) PendingUserDecide(users models.User) *tg_models.InlineKeyboardMarkup {
+	params := bot_types.NewEmptyParams()
+
+	params.UserId = users.Id
+
 	return &tg_models.InlineKeyboardMarkup{
 		InlineKeyboard: [][]tg_models.InlineKeyboardButton{
 			{
-				{Text: "✅ Підтвердити", CallbackData: fmt.Sprintf("%s:%d", callback_data.PendingUsersApprove, users.Id)},
+				{Text: "✅ Підтвердити", CallbackData: bot_utils.AddParamsToQueryString(callback_data.PendingUsersApprove, params)},
 			},
 			{
-				{Text: "❌ Відхилити", CallbackData: fmt.Sprintf("%s:%d", callback_data.PendingUsersDecline, users.Id)},
+				{Text: "❌ Відхилити", CallbackData: bot_utils.AddParamsToQueryString(callback_data.PendingUsersDecline, params)},
 			},
 			{
 				{Text: "🔙 Назад", CallbackData: callback_data.BackToPendingUsersList},
@@ -205,10 +226,14 @@ func (s *inlineKeyboardService) ClientList(clients []models.User) *tg_models.Inl
 	clientKb := make([][]tg_models.InlineKeyboardButton, 0, len(clients))
 
 	for _, client := range clients {
+		params := bot_types.NewEmptyParams()
+
+		params.UserId = client.Id
+
 		clientKb = append(clientKb, []tg_models.InlineKeyboardButton{
 			{
-				Text:         client.GetReadableName(),
-				CallbackData: fmt.Sprintf("%s:%d", callback_data.ClientSelected, client.Id),
+				Text:         client.GetPrivateName(),
+				CallbackData: bot_utils.AddParamsToQueryString(callback_data.ClientSelected, params),
 			},
 		})
 	}
@@ -223,13 +248,17 @@ func (s *inlineKeyboardService) ClientList(clients []models.User) *tg_models.Inl
 }
 
 func (s *inlineKeyboardService) ClientSelectedMenu(clientId int64) *tg_models.InlineKeyboardMarkup {
+	params := bot_types.NewEmptyParams()
+
+	params.UserId = clientId
+
 	return &tg_models.InlineKeyboardMarkup{
 		InlineKeyboard: [][]tg_models.InlineKeyboardButton{
 			{
-				{Text: "📋 Дивитись програми клієнта", CallbackData: fmt.Sprintf("%s:%d", callback_data.ClientProgramList, clientId)},
+				{Text: "📋 Дивитись програми клієнта", CallbackData: bot_utils.AddParamsToQueryString(callback_data.ClientProgramList, params)},
 			},
 			{
-				{Text: "➕ Додати програму для клієнта", CallbackData: fmt.Sprintf("%s:%d", callback_data.ClientProgramAdd, clientId)},
+				{Text: "➕ Додати програму для клієнта", CallbackData: bot_utils.AddParamsToQueryString(callback_data.ClientProgramAdd, params)},
 			},
 			{
 				{Text: "🔙 Назад", CallbackData: callback_data.BackToClientList},
@@ -238,20 +267,25 @@ func (s *inlineKeyboardService) ClientSelectedMenu(clientId int64) *tg_models.In
 	}
 }
 
-func (s *inlineKeyboardService) ClientSelectedProgramMenu(clientId int64, programId uint) *tg_models.InlineKeyboardMarkup {
+func (s *inlineKeyboardService) ClientSelectedProgramMenu(clientId int64, program models.UserProgram) *tg_models.InlineKeyboardMarkup {
+	params := bot_types.NewEmptyParams()
+
+	params.UserId = clientId
+	params.UserProgramId = program.Id
+
 	return &tg_models.InlineKeyboardMarkup{
 		InlineKeyboard: [][]tg_models.InlineKeyboardButton{
 			{
-				{Text: "🚀 Переглянути результати", CallbackData: fmt.Sprintf("%s:%d:%d", callback_data.ClientResultList, clientId, programId)},
+				{Text: "🚀 Переглянути результати", CallbackData: bot_utils.AddParamsToQueryString(callback_data.ClientResultList, params)},
 			},
 			{
-				{Text: "✍️ Внести результати", CallbackData: fmt.Sprintf("%s:%d:%d", callback_data.ClientResultModify, clientId, programId)},
+				{Text: "✍️ Внести результати", CallbackData: bot_utils.AddParamsToQueryString(callback_data.ClientResultModify, params)},
 			},
 			{
-				{Text: "➖ Видалити програму", CallbackData: fmt.Sprintf("%s:%d:%d", callback_data.ClientProgramDelete, clientId, programId)},
+				{Text: "➖ Видалити програму", CallbackData: bot_utils.AddParamsToQueryString(callback_data.ClientProgramDelete, params)},
 			},
 			{
-				{Text: "🔙 Назад", CallbackData: callback_data.BackToClientList},
+				{Text: "🔙 Назад", CallbackData: bot_utils.AddParamsToQueryString(callback_data.ClientProgramList, params)},
 			},
 		},
 	}
@@ -261,16 +295,25 @@ func (s *inlineKeyboardService) ClientProgramList(clientId int64, programs []mod
 	programKb := make([][]tg_models.InlineKeyboardButton, 0, len(programs))
 
 	for _, program := range programs {
+		params := bot_types.NewEmptyParams()
+
+		params.UserId = clientId
+		params.UserProgramId = program.Id
+
 		programKb = append(programKb, []tg_models.InlineKeyboardButton{
 			{
 				Text:         program.Program.Name,
-				CallbackData: fmt.Sprintf("%s:%d:%d", callback_data.ClientProgramSelected, clientId, program.ProgramId),
+				CallbackData: bot_utils.AddParamsToQueryString(callback_data.ClientProgramSelected, params),
 			},
 		})
 	}
 
+	params := bot_types.NewEmptyParams()
+
+	params.UserId = clientId
+
 	programKb = append(programKb, []tg_models.InlineKeyboardButton{
-		{Text: "🔙 Назад", CallbackData: fmt.Sprintf("%s:%d", callback_data.ClientSelected, clientId)},
+		{Text: "🔙 Назад", CallbackData: bot_utils.AddParamsToQueryString(callback_data.ClientSelected, params)},
 	})
 
 	return &tg_models.InlineKeyboardMarkup{
@@ -282,16 +325,24 @@ func (s *inlineKeyboardService) ProgramForClientList(clientId int64, programs []
 	programKb := make([][]tg_models.InlineKeyboardButton, 0, len(programs))
 
 	for _, program := range programs {
+		params := bot_types.NewEmptyParams()
+
+		params.UserId = clientId
+		params.ProgramId = program.Id
 		programKb = append(programKb, []tg_models.InlineKeyboardButton{
 			{
 				Text:         program.Name,
-				CallbackData: fmt.Sprintf("%s:%d:%d", callback_data.ClientProgramAssign, clientId, program.Id),
+				CallbackData: bot_utils.AddParamsToQueryString(callback_data.ClientProgramAssign, params),
 			},
 		})
 	}
 
+	params := bot_types.NewEmptyParams()
+
+	params.UserId = clientId
+
 	programKb = append(programKb, []tg_models.InlineKeyboardButton{
-		{Text: "🔙 Назад", CallbackData: fmt.Sprintf("%s:%d", callback_data.ClientSelected, clientId)},
+		{Text: "🔙 Назад", CallbackData: bot_utils.AddParamsToQueryString(callback_data.ClientSelected, params)},
 	})
 
 	return &tg_models.InlineKeyboardMarkup{

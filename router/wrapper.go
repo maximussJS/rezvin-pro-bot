@@ -30,7 +30,7 @@ func (router *router) wrapResponse(fn wrappedFn) func(w http.ResponseWriter, r *
 
 		if resp.Data != nil {
 			if reflect.ValueOf(resp.Data).Kind() == reflect.String {
-				w.Header().Set("Content-Type", "text/plain")
+				w.Header().Set("Content-Type", "messages/plain")
 				w.WriteHeader(resp.Status)
 
 				utils.MustWriteBytesToResponseWriter(w, []byte(resp.Data.(string)))

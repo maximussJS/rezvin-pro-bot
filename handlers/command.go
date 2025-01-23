@@ -9,6 +9,7 @@ import (
 	"rezvin-pro-bot/repositories"
 	"rezvin-pro-bot/services"
 	bot_utils "rezvin-pro-bot/utils/bot"
+	"rezvin-pro-bot/utils/messages"
 )
 
 type ICommandHandler interface {
@@ -18,14 +19,12 @@ type ICommandHandler interface {
 type commandHandlerDependencies struct {
 	dig.In
 
-	TextService           services.ITextService           `name:"TextService"`
 	InlineKeyboardService services.IInlineKeyboardService `name:"InlineKeyboardService"`
 
 	UserRepository repositories.IUserRepository `name:"UserRepository"`
 }
 
 type commandHandler struct {
-	textService           services.ITextService
 	inlineKeyboardService services.IInlineKeyboardService
 
 	userRepository repositories.IUserRepository
@@ -33,7 +32,6 @@ type commandHandler struct {
 
 func NewCommandHandler(deps commandHandlerDependencies) *commandHandler {
 	return &commandHandler{
-		textService:           deps.TextService,
 		userRepository:        deps.UserRepository,
 		inlineKeyboardService: deps.InlineKeyboardService,
 	}
@@ -47,48 +45,26 @@ func (c *commandHandler) Start(ctx context.Context, b *tg_bot.Bot, update *model
 
 	user := c.userRepository.GetById(ctx, userId)
 
+	name := fmt.Sprintf("%s %s", firstName, lastName)
+
 	if user == nil {
-		name := fmt.Sprintf("%s %s", firstName, lastName)
-
-		bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-			ChatID:      chatId,
-			ReplyMarkup: c.inlineKeyboardService.UserRegister(),
-			Text:        c.textService.UserRegisterMessage(name),
-			ParseMode:   models.ParseModeMarkdown,
-		})
-
+		kb := c.inlineKeyboardService.UserRegister()
+		bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, messages.NeedRegister(name), kb)
 		return
 	}
 
 	if user.IsAdmin {
-		bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-			ChatID:      chatId,
-			ReplyMarkup: c.inlineKeyboardService.AdminMain(),
-			Text:        c.textService.AdminMainMessage(),
-			ParseMode:   models.ParseModeMarkdown,
-		})
+		kb := c.inlineKeyboardService.AdminMain()
+		bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, messages.AdminMainMessage(), kb)
 	} else {
 		if user.IsApproved {
-			bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-				ChatID:      chatId,
-				ReplyMarkup: c.inlineKeyboardService.UserMenu(),
-				Text:        c.textService.UserMenuMessage(user.GetReadableName()),
-				ParseMode:   models.ParseModeMarkdown,
-			})
-
+			msg := messages.UserMenuMessage(user.GetPrivateName())
+			bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, msg, c.inlineKeyboardService.UserMenu())
 		} else {
 			if user.IsDeclined {
-				bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-					ChatID:    chatId,
-					Text:      c.textService.DeclinedUserExistsMessage(),
-					ParseMode: models.ParseModeMarkdown,
-				})
+				bot_utils.SendMessage(ctx, b, chatId, messages.UserDeclinedMessage(name))
 			} else {
-				bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-					ChatID:    chatId,
-					Text:      c.textService.UnapprovedUserExistsMessage(),
-					ParseMode: models.ParseModeMarkdown,
-				})
+				bot_utils.SendMessage(ctx, b, chatId, messages.AlreadyRegistered())
 			}
 		}
 	}

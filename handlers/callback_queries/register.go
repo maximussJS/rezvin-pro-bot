@@ -10,46 +10,45 @@ import (
 	"rezvin-pro-bot/internal/logger"
 	"rezvin-pro-bot/models"
 	"rezvin-pro-bot/repositories"
-	"rezvin-pro-bot/services"
 	bot_utils "rezvin-pro-bot/utils/bot"
+	utils_context "rezvin-pro-bot/utils/context"
+	"rezvin-pro-bot/utils/messages"
 )
 
-type IUserHandler interface {
+type IRegisterHandler interface {
 	Handle(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update)
 }
 
-type userHandlerDependencies struct {
+type registerHandlerDependencies struct {
 	dig.In
 
 	Logger         logger.ILogger               `name:"Logger"`
-	TextService    services.ITextService        `name:"TextService"`
 	UserRepository repositories.IUserRepository `name:"UserRepository"`
 }
 
-type userHandler struct {
+type registerHandler struct {
 	logger         logger.ILogger
-	textService    services.ITextService
 	userRepository repositories.IUserRepository
 }
 
-func NewUserHandler(deps userHandlerDependencies) *userHandler {
-	return &userHandler{
+func NewRegisterHandler(deps registerHandlerDependencies) *registerHandler {
+	return &registerHandler{
 		logger:         deps.Logger,
-		textService:    deps.TextService,
 		userRepository: deps.UserRepository,
 	}
 }
 
-func (h *userHandler) Handle(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
+func (h *registerHandler) Handle(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
 	switch update.CallbackQuery.Data {
 	case callback_data.UserRegister:
 		h.registerUser(ctx, b, update)
 	}
 }
 
-func (h *userHandler) registerUser(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
+func (h *registerHandler) registerUser(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
+	chatId := utils_context.GetChatIdFromContext(ctx)
+
 	userId := bot_utils.GetUserID(update)
-	chatId := bot_utils.GetChatID(update)
 	firstName := bot_utils.GetFirstName(update)
 	lastName := bot_utils.GetLastName(update)
 
@@ -57,17 +56,9 @@ func (h *userHandler) registerUser(ctx context.Context, b *tg_bot.Bot, update *t
 
 	if user != nil {
 		if user.IsApproved {
-			bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-				ChatID:    chatId,
-				Text:      h.textService.ApprovedUserExistsMessage(),
-				ParseMode: tg_models.ParseModeMarkdown,
-			})
+			bot_utils.SendMessage(ctx, b, chatId, messages.AlreadyApprovedRegister())
 		} else {
-			bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-				ChatID:    chatId,
-				Text:      h.textService.UnapprovedUserExistsMessage(),
-				ParseMode: tg_models.ParseModeMarkdown,
-			})
+			bot_utils.SendMessage(ctx, b, chatId, messages.AlreadyRegistered())
 		}
 		return
 	}
@@ -83,21 +74,13 @@ func (h *userHandler) registerUser(ctx context.Context, b *tg_bot.Bot, update *t
 		IsDeclined: false,
 	})
 
-	bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-		ChatID:    chatId,
-		Text:      h.textService.UserRegisterSuccessMessage(),
-		ParseMode: tg_models.ParseModeMarkdown,
-	})
+	bot_utils.SendMessage(ctx, b, chatId, messages.SuccessRegister())
 
 	admins := h.userRepository.GetAdminUsers(ctx)
 
 	name := fmt.Sprintf("%s %s", firstName, lastName)
 
 	for _, admin := range admins {
-		bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-			ChatID:    admin.ChatId,
-			Text:      h.textService.NewUserRegisteredMessage(name),
-			ParseMode: tg_models.ParseModeMarkdown,
-		})
+		bot_utils.SendMessage(ctx, b, admin.ChatId, messages.NewRegister(name))
 	}
 }

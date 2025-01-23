@@ -2,7 +2,6 @@ package callback_queries
 
 import (
 	"context"
-	"fmt"
 	tg_bot "github.com/go-telegram/bot"
 	tg_models "github.com/go-telegram/bot/models"
 	"go.uber.org/dig"
@@ -12,6 +11,8 @@ import (
 	"rezvin-pro-bot/repositories"
 	"rezvin-pro-bot/services"
 	bot_utils "rezvin-pro-bot/utils/bot"
+	utils_context "rezvin-pro-bot/utils/context"
+	"rezvin-pro-bot/utils/messages"
 	"strings"
 )
 
@@ -23,7 +24,6 @@ type pendingUsersHandlerDependencies struct {
 	dig.In
 
 	Logger                logger.ILogger                  `name:"Logger"`
-	TextService           services.ITextService           `name:"TextService"`
 	ConversationService   services.IConversationService   `name:"ConversationService"`
 	InlineKeyboardService services.IInlineKeyboardService `name:"InlineKeyboardService"`
 	UserRepository        repositories.IUserRepository    `name:"UserRepository"`
@@ -31,7 +31,6 @@ type pendingUsersHandlerDependencies struct {
 
 type pendingUsersHandler struct {
 	logger                logger.ILogger
-	textService           services.ITextService
 	conversationService   services.IConversationService
 	inlineKeyboardService services.IInlineKeyboardService
 	userRepository        repositories.IUserRepository
@@ -40,7 +39,6 @@ type pendingUsersHandler struct {
 func NewPendingUsersHandler(deps pendingUsersHandlerDependencies) *pendingUsersHandler {
 	return &pendingUsersHandler{
 		logger:                deps.Logger,
-		textService:           deps.TextService,
 		conversationService:   deps.ConversationService,
 		inlineKeyboardService: deps.InlineKeyboardService,
 		userRepository:        deps.UserRepository,
@@ -51,136 +49,73 @@ func (h *pendingUsersHandler) Handle(ctx context.Context, b *tg_bot.Bot, update 
 	callbackQueryData := update.CallbackQuery.Data
 
 	if strings.HasPrefix(callbackQueryData, callback_data.PendingUsersSelected) {
-		h.selected(ctx, b, update)
+		h.selected(ctx, b)
 		return
 	}
 
 	if strings.HasPrefix(callbackQueryData, callback_data.PendingUsersApprove) {
-		h.approve(ctx, b, update)
+		h.approve(ctx, b)
 		return
 	}
 
 	if strings.HasPrefix(callbackQueryData, callback_data.PendingUsersDecline) {
-		h.decline(ctx, b, update)
+		h.decline(ctx, b)
 		return
 	}
 
 	switch callbackQueryData {
 	case callback_data.PendingUsersList:
-		h.list(ctx, b, update)
+		h.list(ctx, b)
 	}
 }
 
-func (h *pendingUsersHandler) list(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
-	chatId := bot_utils.GetChatID(update)
+func (h *pendingUsersHandler) list(ctx context.Context, b *tg_bot.Bot) {
+	chatId := utils_context.GetChatIdFromContext(ctx)
+	limit := utils_context.GetLimitFromContext(ctx)
+	offset := utils_context.GetOffsetFromContext(ctx)
 
-	users := h.userRepository.GetPendingUsers(ctx, 5, 0)
+	users := h.userRepository.GetPendingUsers(ctx, limit, offset)
 
 	if len(users) == 0 {
-		bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-			ChatID:    chatId,
-			Text:      h.textService.NoPendingUsersMessage(),
-			ParseMode: tg_models.ParseModeMarkdown,
-		})
+		bot_utils.SendMessage(ctx, b, chatId, messages.NoPendingUsersMessage())
 		return
 	}
 
-	bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-		ChatID:      chatId,
-		Text:        h.textService.SelectPendingUserMessage(),
-		ReplyMarkup: h.inlineKeyboardService.PendingUsersList(users),
-		ParseMode:   tg_models.ParseModeMarkdown,
-	})
+	kb := h.inlineKeyboardService.PendingUsersList(users)
+
+	bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, messages.SelectPendingUserMessage(), kb)
 }
 
-func (h *pendingUsersHandler) selected(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
-	chatId := bot_utils.GetChatID(update)
-	userId := bot_utils.GetSelectedUserId(update)
+func (h *pendingUsersHandler) selected(ctx context.Context, b *tg_bot.Bot) {
+	chatId := utils_context.GetChatIdFromContext(ctx)
+	user := utils_context.GetUserFromContext(ctx)
 
-	user := h.userRepository.GetById(ctx, userId)
-
-	if user == nil {
-		h.logger.Error(fmt.Sprintf("User not found: %d", userId))
-		bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-			ChatID:    chatId,
-			Text:      h.textService.ErrorMessage(),
-			ParseMode: tg_models.ParseModeMarkdown,
-		})
-		return
-	}
-
-	bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-		ChatID:      chatId,
-		Text:        h.textService.SelectPendingUserOptionMessage(fmt.Sprintf("%s %s", user.FirstName, user.LastName)),
-		ReplyMarkup: h.inlineKeyboardService.PendingUserDecide(*user),
-		ParseMode:   tg_models.ParseModeMarkdown,
-	})
+	msg := messages.SelectPendingUserOptionMessage(user.GetPrivateName())
+	bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, msg, h.inlineKeyboardService.PendingUserDecide(*user))
 }
 
-func (h *pendingUsersHandler) approve(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
-	chatId := bot_utils.GetChatID(update)
-	userId := bot_utils.GetSelectedUserId(update)
+func (h *pendingUsersHandler) approve(ctx context.Context, b *tg_bot.Bot) {
+	chatId := utils_context.GetChatIdFromContext(ctx)
+	user := utils_context.GetUserFromContext(ctx)
 
-	user := h.userRepository.GetById(ctx, userId)
-
-	if user == nil {
-		h.logger.Error(fmt.Sprintf("User not found: %d", userId))
-		bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-			ChatID:    chatId,
-			Text:      h.textService.ErrorMessage(),
-			ParseMode: tg_models.ParseModeMarkdown,
-		})
-		return
-	}
-
-	h.userRepository.UpdateById(ctx, userId, models.User{
+	h.userRepository.UpdateById(ctx, user.Id, models.User{
 		IsApproved: true,
 		IsDeclined: false,
 	})
 
-	bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-		ChatID:    user.ChatId,
-		Text:      h.textService.UserApprovedMessage(user.GetReadableName()),
-		ParseMode: tg_models.ParseModeMarkdown,
-	})
-
-	bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-		ChatID:    chatId,
-		Text:      h.textService.UserApprovedForAdminMessage(user.GetReadableName()),
-		ParseMode: tg_models.ParseModeMarkdown,
-	})
+	bot_utils.SendMessage(ctx, b, chatId, messages.UserApprovedMessage(user.GetPublicName()))
+	bot_utils.SendMessage(ctx, b, chatId, messages.UserApprovedForAdminMessage(user.GetPrivateName()))
 }
 
-func (h *pendingUsersHandler) decline(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
-	chatId := bot_utils.GetChatID(update)
-	userId := bot_utils.GetSelectedUserId(update)
+func (h *pendingUsersHandler) decline(ctx context.Context, b *tg_bot.Bot) {
+	chatId := utils_context.GetChatIdFromContext(ctx)
+	user := utils_context.GetUserFromContext(ctx)
 
-	user := h.userRepository.GetById(ctx, userId)
-
-	if user == nil {
-		h.logger.Error(fmt.Sprintf("User not found: %d", userId))
-		bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-			ChatID:    chatId,
-			Text:      h.textService.ErrorMessage(),
-			ParseMode: tg_models.ParseModeMarkdown,
-		})
-		return
-	}
-
-	h.userRepository.UpdateById(ctx, userId, models.User{
+	h.userRepository.UpdateById(ctx, user.Id, models.User{
 		IsDeclined: true,
 		IsApproved: false,
 	})
 
-	bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-		ChatID:    user.ChatId,
-		Text:      h.textService.UserDeclinedMessage(user.GetReadableName()),
-		ParseMode: tg_models.ParseModeMarkdown,
-	})
-
-	bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-		ChatID:    chatId,
-		Text:      h.textService.UserDeclinedForAdminMessage(user.GetReadableName()),
-		ParseMode: tg_models.ParseModeMarkdown,
-	})
+	bot_utils.SendMessage(ctx, b, chatId, messages.UserDeclinedMessage(user.GetPublicName()))
+	bot_utils.SendMessage(ctx, b, chatId, messages.UserDeclinedForAdminMessage(user.GetPrivateName()))
 }

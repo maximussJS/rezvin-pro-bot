@@ -11,6 +11,8 @@ import (
 	"rezvin-pro-bot/repositories"
 	"rezvin-pro-bot/services"
 	bot_utils "rezvin-pro-bot/utils/bot"
+	utils_context "rezvin-pro-bot/utils/context"
+	"rezvin-pro-bot/utils/messages"
 )
 
 type IBackHandler interface {
@@ -21,7 +23,6 @@ type backHandlerDependencies struct {
 	dig.In
 
 	Logger                logger.ILogger                  `name:"Logger"`
-	TextService           services.ITextService           `name:"TextService"`
 	InlineKeyboardService services.IInlineKeyboardService `name:"InlineKeyboardService"`
 
 	UserRepository    repositories.IUserRepository    `name:"UserRepository"`
@@ -30,7 +31,6 @@ type backHandlerDependencies struct {
 
 type backHandler struct {
 	logger                logger.ILogger
-	textService           services.ITextService
 	inlineKeyboardService services.IInlineKeyboardService
 	userRepository        repositories.IUserRepository
 	programRepository     repositories.IProgramRepository
@@ -39,7 +39,6 @@ type backHandler struct {
 func NewBackHandler(deps backHandlerDependencies) *backHandler {
 	return &backHandler{
 		logger:                deps.Logger,
-		textService:           deps.TextService,
 		inlineKeyboardService: deps.InlineKeyboardService,
 		userRepository:        deps.UserRepository,
 		programRepository:     deps.ProgramRepository,
@@ -51,21 +50,22 @@ func (h *backHandler) Handle(ctx context.Context, b *tg_bot.Bot, update *tg_mode
 	case callback_data.BackToMain:
 		h.backToMain(ctx, b, update)
 	case callback_data.BackToStart:
-		h.backToStart(ctx, b, update)
+		h.backToStart(ctx, b)
 	case callback_data.BackToProgramMenu:
-		h.backToProgramMenu(ctx, b, update)
+		h.backToProgramMenu(ctx, b)
 	case callback_data.BackToProgramList:
-		h.backToProgramList(ctx, b, update)
+		h.backToProgramList(ctx, b)
 	case callback_data.BackToPendingUsersList:
-		h.backToPendingUsersList(ctx, b, update)
+		h.backToPendingUsersList(ctx, b)
 	case callback_data.BackToClientList:
-		h.backToClientList(ctx, b, update)
+		h.backToClientList(ctx, b)
 	}
 }
 
 func (h *backHandler) backToMain(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
+	chatId := utils_context.GetChatIdFromContext(ctx)
+
 	userId := bot_utils.GetUserID(update)
-	chatId := bot_utils.GetChatID(update)
 	firstName := bot_utils.GetFirstName(update)
 	lastName := bot_utils.GetLastName(update)
 
@@ -73,133 +73,90 @@ func (h *backHandler) backToMain(ctx context.Context, b *tg_bot.Bot, update *tg_
 
 	if user == nil {
 		name := fmt.Sprintf("%s %s", firstName, lastName)
-		bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-			ChatID:      chatId,
-			ReplyMarkup: h.inlineKeyboardService.UserRegister(),
-			Text:        h.textService.UserRegisterMessage(name),
-			ParseMode:   tg_models.ParseModeMarkdown,
-		})
 
+		kb := h.inlineKeyboardService.UserRegister()
+		bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, messages.NeedRegister(name), kb)
 		return
 	}
 
 	if user.IsAdmin {
-		bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-			ChatID:      chatId,
-			ReplyMarkup: h.inlineKeyboardService.AdminMain(),
-			Text:        h.textService.AdminMainMessage(),
-			ParseMode:   tg_models.ParseModeMarkdown,
-		})
+		kb := h.inlineKeyboardService.AdminMain()
+		bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, messages.AdminMainMessage(), kb)
 	} else {
 		if user.IsApproved {
-			bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-				ChatID:      chatId,
-				ReplyMarkup: h.inlineKeyboardService.UserMenu(),
-				Text:        h.textService.UserMenuMessage(user.GetReadableName()),
-				ParseMode:   tg_models.ParseModeMarkdown,
-			})
-
+			msg := messages.UserMenuMessage(user.GetPrivateName())
+			bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, msg, h.inlineKeyboardService.UserMenu())
 		} else {
 			if user.IsDeclined {
-				bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-					ChatID:    chatId,
-					Text:      h.textService.DeclinedUserExistsMessage(),
-					ParseMode: tg_models.ParseModeMarkdown,
-				})
+				bot_utils.SendMessage(ctx, b, chatId, messages.UserDeclinedMessage(user.GetPublicName()))
 			} else {
-				bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-					ChatID:    chatId,
-					Text:      h.textService.UnapprovedUserExistsMessage(),
-					ParseMode: tg_models.ParseModeMarkdown,
-				})
+				bot_utils.SendMessage(ctx, b, chatId, messages.AlreadyRegistered())
 			}
 		}
 	}
 }
 
-func (h *backHandler) backToStart(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
-	chatId := bot_utils.GetChatID(update)
+func (h *backHandler) backToStart(ctx context.Context, b *tg_bot.Bot) {
+	chatId := utils_context.GetChatIdFromContext(ctx)
 
-	bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-		ChatID:    chatId,
-		Text:      h.textService.PressStartMessage(),
-		ParseMode: tg_models.ParseModeMarkdown,
-	})
+	bot_utils.SendMessage(ctx, b, chatId, messages.PressStartMessage())
 }
 
-func (h *backHandler) backToProgramMenu(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
-	chatId := bot_utils.GetChatID(update)
+func (h *backHandler) backToProgramMenu(ctx context.Context, b *tg_bot.Bot) {
+	chatId := utils_context.GetChatIdFromContext(ctx)
 
-	bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-		ChatID:      chatId,
-		Text:        h.textService.ProgramMenuMessage(),
-		ReplyMarkup: h.inlineKeyboardService.ProgramMenu(),
-		ParseMode:   tg_models.ParseModeMarkdown,
-	})
+	kb := h.inlineKeyboardService.ProgramMenu()
+
+	bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, messages.ProgramMenuMessage(), kb)
 }
 
-func (h *backHandler) backToProgramList(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
-	programs := h.programRepository.GetAll(ctx, 5, 0)
+func (h *backHandler) backToProgramList(ctx context.Context, b *tg_bot.Bot) {
+	chatId := utils_context.GetChatIdFromContext(ctx)
+	limit := utils_context.GetLimitFromContext(ctx)
+	offset := utils_context.GetOffsetFromContext(ctx)
 
-	chatId := bot_utils.GetChatID(update)
+	programs := h.programRepository.GetAll(ctx, limit, offset)
 
 	if len(programs) == 0 {
-		bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-			ChatID:    chatId,
-			Text:      h.textService.NoProgramsMessage(),
-			ParseMode: tg_models.ParseModeMarkdown,
-		})
+		bot_utils.SendMessage(ctx, b, chatId, messages.NoProgramsMessage())
 		return
 	}
 
-	bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-		ChatID:      chatId,
-		Text:        h.textService.SelectProgramMessage(),
-		ReplyMarkup: h.inlineKeyboardService.ProgramList(programs),
-		ParseMode:   tg_models.ParseModeMarkdown,
-	})
+	kb := h.inlineKeyboardService.ProgramList(programs)
+
+	bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, messages.SelectProgramMessage(), kb)
 }
 
-func (h *backHandler) backToPendingUsersList(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
-	chatId := bot_utils.GetChatID(update)
+func (h *backHandler) backToPendingUsersList(ctx context.Context, b *tg_bot.Bot) {
+	chatId := utils_context.GetChatIdFromContext(ctx)
+	limit := utils_context.GetLimitFromContext(ctx)
+	offset := utils_context.GetOffsetFromContext(ctx)
 
-	users := h.userRepository.GetPendingUsers(ctx, 5, 0)
+	users := h.userRepository.GetPendingUsers(ctx, limit, offset)
 
 	if len(users) == 0 {
-		bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-			ChatID:    chatId,
-			Text:      h.textService.NoPendingUsersMessage(),
-			ParseMode: tg_models.ParseModeMarkdown,
-		})
+		bot_utils.SendMessage(ctx, b, chatId, messages.NoPendingUsersMessage())
 		return
 	}
 
-	bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-		ChatID:      chatId,
-		Text:        h.textService.SelectPendingUserMessage(),
-		ReplyMarkup: h.inlineKeyboardService.PendingUsersList(users),
-		ParseMode:   tg_models.ParseModeMarkdown,
-	})
+	kb := h.inlineKeyboardService.PendingUsersList(users)
+
+	bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, messages.SelectPendingUserMessage(), kb)
 }
 
-func (h *backHandler) backToClientList(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
-	chatId := bot_utils.GetChatID(update)
+func (h *backHandler) backToClientList(ctx context.Context, b *tg_bot.Bot) {
+	chatId := utils_context.GetChatIdFromContext(ctx)
+	limit := utils_context.GetLimitFromContext(ctx)
+	offset := utils_context.GetOffsetFromContext(ctx)
 
-	clients := h.userRepository.GetClients(ctx, 5, 0)
+	clients := h.userRepository.GetClients(ctx, limit, offset)
 
 	if len(clients) == 0 {
-		bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-			ChatID:    chatId,
-			Text:      h.textService.NoClientsMessage(),
-			ParseMode: tg_models.ParseModeMarkdown,
-		})
+		bot_utils.SendMessage(ctx, b, chatId, messages.NoClientsMessage())
 		return
 	}
 
-	bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-		ChatID:      chatId,
-		Text:        h.textService.SelectClientMessage(),
-		ReplyMarkup: h.inlineKeyboardService.ClientList(clients),
-		ParseMode:   tg_models.ParseModeMarkdown,
-	})
+	kb := h.inlineKeyboardService.ClientList(clients)
+
+	bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, messages.SelectClientMessage(), kb)
 }

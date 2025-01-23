@@ -103,11 +103,6 @@ func getRepositoriesDependencies() []Dependency {
 func getServicesDependencies() []Dependency {
 	return []Dependency{
 		{
-			Constructor: services.NewTextService,
-			Interface:   new(services.ITextService),
-			Token:       "TextService",
-		},
-		{
 			Constructor: services.NewConversationService,
 			Interface:   new(services.IConversationService),
 			Token:       "ConversationService",
@@ -133,9 +128,9 @@ func getHandlersDependencies() []Dependency {
 			Token:       "CommandHandler",
 		},
 		{
-			Constructor: callback_queries.NewUserHandler,
-			Interface:   new(callback_queries.IUserHandler),
-			Token:       "UserHandler",
+			Constructor: callback_queries.NewRegisterHandler,
+			Interface:   new(callback_queries.IRegisterHandler),
+			Token:       "RegisterHandler",
 		},
 		{
 			Constructor: callback_queries.NewProgramHandler,

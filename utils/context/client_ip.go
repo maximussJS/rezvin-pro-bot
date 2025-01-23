@@ -1,8 +1,6 @@
-package utils
+package utils_context
 
-import (
-	"context"
-)
+import "context"
 
 func GetContextWithClientIp(ctx context.Context, ip string) context.Context {
 	return context.WithValue(ctx, "clientIp", ip)

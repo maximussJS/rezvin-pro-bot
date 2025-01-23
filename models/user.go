@@ -27,7 +27,17 @@ func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
 	return
 }
 
-func (u *User) GetReadableName() string {
+func (u *User) GetPrivateName() string {
+	text := fmt.Sprintf("%s %s", u.FirstName, u.LastName)
+
+	if u.Username != "" {
+		text += fmt.Sprintf(" @%s", u.Username)
+	}
+
+	return text
+}
+
+func (u *User) GetPublicName() string {
 	text := fmt.Sprintf("%s %s", u.FirstName, u.LastName)
 
 	if u.Username != "" {

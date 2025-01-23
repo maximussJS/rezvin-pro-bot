@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"rezvin-pro-bot/utils"
+	utils_context "rezvin-pro-bot/utils/context"
 	"time"
 )
 
@@ -43,7 +44,7 @@ func (router *router) logMiddleware(n httprouter.Handle) httprouter.Handle {
 
 		duration := time.Since(start)
 
-		clientIP := utils.GetClientIpFromContext(r.Context())
+		clientIP := utils_context.GetClientIpFromContext(r.Context())
 
 		router.logger.Log(fmt.Sprintf(
 			"[%s] %s %s %s %.0fm%.0fs%dms%dns %s",
@@ -67,7 +68,7 @@ func (router *router) clientIpMiddleware(n httprouter.Handle) httprouter.Handle 
 			clientIP = ip
 		}
 
-		ctx := utils.GetContextWithClientIp(r.Context(), clientIP)
+		ctx := utils_context.GetContextWithClientIp(r.Context(), clientIP)
 
 		n(w, r.WithContext(ctx), ps)
 	}

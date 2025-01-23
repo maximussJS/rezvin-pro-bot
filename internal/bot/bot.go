@@ -11,7 +11,6 @@ import (
 	"rezvin-pro-bot/handlers/callback_queries"
 	"rezvin-pro-bot/internal/logger"
 	"rezvin-pro-bot/repositories"
-	"rezvin-pro-bot/services"
 	"rezvin-pro-bot/utils"
 	"sync"
 )
@@ -30,15 +29,18 @@ type botDependencies struct {
 
 	DefaultHandler      handlers.IDefaultHandler              `name:"DefaultHandler"`
 	CommandsHandler     handlers.ICommandHandler              `name:"CommandHandler"`
-	UserHandler         callback_queries.IUserHandler         `name:"UserHandler"`
+	RegisterHandler     callback_queries.IRegisterHandler     `name:"RegisterHandler"`
 	ProgramHandler      callback_queries.IProgramHandler      `name:"ProgramHandler"`
 	ExerciseHandler     callback_queries.IExerciseHandler     `name:"ExerciseHandler"`
 	PendingUsersHandler callback_queries.IPendingUsersHandler `name:"PendingUsersHandler"`
 	BackHandler         callback_queries.IBackHandler         `name:"BackHandler"`
 	ClientHandler       callback_queries.IClientHandler       `name:"ClientHandler"`
 
-	TextService    services.ITextService        `name:"TextService"`
-	UserRepository repositories.IUserRepository `name:"UserRepository"`
+	UserRepository               repositories.IUserRepository               `name:"UserRepository"`
+	ProgramRepository            repositories.IProgramRepository            `name:"ProgramRepository"`
+	UserProgramRepository        repositories.IUserProgramRepository        `name:"UserProgramRepository"`
+	UserExerciseRecordRepository repositories.IUserExerciseRecordRepository `name:"UserExerciseRecordRepository"`
+	ExerciseRepository           repositories.IExerciseRepository           `name:"ExerciseRepository"`
 }
 
 type bot struct {
@@ -52,38 +54,44 @@ type bot struct {
 
 	commandsHandler     handlers.ICommandHandler
 	defaultHandler      handlers.IDefaultHandler
-	userHandler         callback_queries.IUserHandler
+	registerHandler     callback_queries.IRegisterHandler
 	programHandler      callback_queries.IProgramHandler
 	exerciseHandler     callback_queries.IExerciseHandler
 	pendingUsersHandler callback_queries.IPendingUsersHandler
 	backHandler         callback_queries.IBackHandler
 	clientHandler       callback_queries.IClientHandler
 
-	textService    services.ITextService
-	userRepository repositories.IUserRepository
+	userRepository               repositories.IUserRepository
+	programRepository            repositories.IProgramRepository
+	userProgramRepository        repositories.IUserProgramRepository
+	userExerciseRecordRepository repositories.IUserExerciseRecordRepository
+	exerciseRepository           repositories.IExerciseRepository
 }
 
 func NewBot(deps botDependencies) *bot {
 	b := &bot{
-		shutdownWaitGroup:   deps.ShutdownWaitGroup,
-		shutdownContext:     deps.ShutdownContext,
-		logger:              deps.Logger,
-		config:              deps.Config,
-		commandsHandler:     deps.CommandsHandler,
-		defaultHandler:      deps.DefaultHandler,
-		programHandler:      deps.ProgramHandler,
-		userHandler:         deps.UserHandler,
-		exerciseHandler:     deps.ExerciseHandler,
-		pendingUsersHandler: deps.PendingUsersHandler,
-		backHandler:         deps.BackHandler,
-		clientHandler:       deps.ClientHandler,
-		textService:         deps.TextService,
-		userRepository:      deps.UserRepository,
+		shutdownWaitGroup:            deps.ShutdownWaitGroup,
+		shutdownContext:              deps.ShutdownContext,
+		logger:                       deps.Logger,
+		config:                       deps.Config,
+		commandsHandler:              deps.CommandsHandler,
+		defaultHandler:               deps.DefaultHandler,
+		programHandler:               deps.ProgramHandler,
+		registerHandler:              deps.RegisterHandler,
+		exerciseHandler:              deps.ExerciseHandler,
+		pendingUsersHandler:          deps.PendingUsersHandler,
+		backHandler:                  deps.BackHandler,
+		clientHandler:                deps.ClientHandler,
+		userRepository:               deps.UserRepository,
+		programRepository:            deps.ProgramRepository,
+		userProgramRepository:        deps.UserProgramRepository,
+		userExerciseRecordRepository: deps.UserExerciseRecordRepository,
+		exerciseRepository:           deps.ExerciseRepository,
 	}
 
 	opts := []tg_bot.Option{
 		tg_bot.WithDefaultHandler(b.defaultHandler.Handle),
-		tg_bot.WithMiddlewares(b.panicRecoveryMiddleware),
+		tg_bot.WithMiddlewares(b.panicRecoveryMiddleware, b.chatIdMiddleware),
 	}
 
 	tgBot, err := tg_bot.New(b.config.BotToken(), opts...)
@@ -114,7 +122,7 @@ func (bot *bot) Start() {
 	bot.logger.Log("Bot stopped")
 }
 
-func (bot *bot) registerCommand(command string, handler tg_bot.HandlerFunc, middlewares ...tg_bot.Middleware) {
+func (bot *bot) registerCommand(command string, handler tg_bot.HandlerFunc, middlewares []tg_bot.Middleware) {
 	bot.bot.RegisterHandler(
 		tg_bot.HandlerTypeMessageText,
 		command,
@@ -124,7 +132,7 @@ func (bot *bot) registerCommand(command string, handler tg_bot.HandlerFunc, midd
 	)
 }
 
-func (bot *bot) registerCallbackQueryByPrefix(prefix string, handler tg_bot.HandlerFunc, middlewares ...tg_bot.Middleware) {
+func (bot *bot) registerCallbackQueryByPrefix(prefix string, handler tg_bot.HandlerFunc, middlewares []tg_bot.Middleware) {
 	bot.bot.RegisterHandler(
 		tg_bot.HandlerTypeCallbackQueryData,
 		prefix,
@@ -139,12 +147,13 @@ func (bot *bot) registerHandlers() {
 		panic("cannot register handlers without bot instance")
 	}
 
-	bot.registerCommand(constants.CommandStart, bot.commandsHandler.Start, bot.timeoutMiddleware)
+	bot.registerCommand(constants.CommandStart, bot.commandsHandler.Start, bot.commandMiddlewares())
 
-	bot.registerCallbackQueryByPrefix(callback_data.UserPrefix, bot.userHandler.Handle, bot.answerCallbackQueryMiddleware, bot.timeoutMiddleware)
-	bot.registerCallbackQueryByPrefix(callback_data.ProgramPrefix, bot.programHandler.Handle, bot.answerCallbackQueryMiddleware, bot.isAdminMiddleware)
-	bot.registerCallbackQueryByPrefix(callback_data.ExercisePrefix, bot.exerciseHandler.Handle, bot.answerCallbackQueryMiddleware, bot.isAdminMiddleware)
-	bot.registerCallbackQueryByPrefix(callback_data.PendingUsersPrefix, bot.pendingUsersHandler.Handle, bot.answerCallbackQueryMiddleware, bot.isAdminMiddleware)
-	bot.registerCallbackQueryByPrefix(callback_data.BackPrefix, bot.backHandler.Handle, bot.answerCallbackQueryMiddleware, bot.isAdminMiddleware)
-	bot.registerCallbackQueryByPrefix(callback_data.ClientPrefix, bot.clientHandler.Handle, bot.answerCallbackQueryMiddleware, bot.isAdminMiddleware)
+	bot.registerCallbackQueryByPrefix(callback_data.UserPrefix, bot.registerHandler.Handle, bot.userMiddlewares())
+
+	bot.registerCallbackQueryByPrefix(callback_data.ProgramPrefix, bot.programHandler.Handle, bot.adminMiddlewares())
+	bot.registerCallbackQueryByPrefix(callback_data.ExercisePrefix, bot.exerciseHandler.Handle, bot.adminMiddlewares())
+	bot.registerCallbackQueryByPrefix(callback_data.PendingUsersPrefix, bot.pendingUsersHandler.Handle, bot.adminMiddlewares())
+	bot.registerCallbackQueryByPrefix(callback_data.BackPrefix, bot.backHandler.Handle, bot.adminMiddlewares())
+	bot.registerCallbackQueryByPrefix(callback_data.ClientPrefix, bot.clientHandler.Handle, bot.adminMiddlewares())
 }

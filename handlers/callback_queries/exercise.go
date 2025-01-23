@@ -2,7 +2,6 @@ package callback_queries
 
 import (
 	"context"
-	"fmt"
 	tg_bot "github.com/go-telegram/bot"
 	tg_models "github.com/go-telegram/bot/models"
 	"go.uber.org/dig"
@@ -12,6 +11,8 @@ import (
 	"rezvin-pro-bot/repositories"
 	"rezvin-pro-bot/services"
 	bot_utils "rezvin-pro-bot/utils/bot"
+	utils_context "rezvin-pro-bot/utils/context"
+	"rezvin-pro-bot/utils/messages"
 	"strings"
 )
 
@@ -23,7 +24,6 @@ type exerciseHandlerDependencies struct {
 	dig.In
 
 	Logger                logger.ILogger                  `name:"Logger"`
-	TextService           services.ITextService           `name:"TextService"`
 	ConversationService   services.IConversationService   `name:"ConversationService"`
 	InlineKeyboardService services.IInlineKeyboardService `name:"InlineKeyboardService"`
 
@@ -33,7 +33,6 @@ type exerciseHandlerDependencies struct {
 
 type exerciseHandler struct {
 	logger                logger.ILogger
-	textService           services.ITextService
 	conversationService   services.IConversationService
 	inlineKeyboardService services.IInlineKeyboardService
 	programRepository     repositories.IProgramRepository
@@ -43,7 +42,6 @@ type exerciseHandler struct {
 func NewExerciseHandler(deps exerciseHandlerDependencies) *exerciseHandler {
 	return &exerciseHandler{
 		logger:                deps.Logger,
-		textService:           deps.TextService,
 		inlineKeyboardService: deps.InlineKeyboardService,
 		conversationService:   deps.ConversationService,
 		programRepository:     deps.ProgramRepository,
@@ -55,192 +53,103 @@ func (h *exerciseHandler) Handle(ctx context.Context, b *tg_bot.Bot, update *tg_
 	callbackDataQuery := update.CallbackQuery.Data
 
 	if strings.HasPrefix(callbackDataQuery, callback_data.ExerciseAdd) {
-		h.add(ctx, b, update)
+		h.add(ctx, b)
 		return
 	}
 
 	if strings.HasPrefix(callbackDataQuery, callback_data.ExerciseList) {
-		h.list(ctx, b, update)
+		h.list(ctx, b)
 		return
 	}
 
 	if strings.HasPrefix(callbackDataQuery, callback_data.ExerciseDeleteItem) {
-		h.deleteItem(ctx, b, update)
+		h.deleteItem(ctx, b)
 		return
 	}
 
 	if strings.HasPrefix(callbackDataQuery, callback_data.ExerciseDelete) {
-		h.delete(ctx, b, update)
+		h.delete(ctx, b)
 		return
 	}
 }
 
-func (h *exerciseHandler) add(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
-	chatId := bot_utils.GetChatID(update)
-	programId := bot_utils.GetProgramId(update)
-
-	program := h.programRepository.GetById(ctx, programId)
-
-	if program == nil {
-		h.logger.Error(fmt.Sprintf("Program not found: %d", programId))
-		bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-			ChatID:    chatId,
-			Text:      h.textService.ErrorMessage(),
-			ParseMode: tg_models.ParseModeMarkdown,
-		})
-		return
-	}
+func (h *exerciseHandler) add(ctx context.Context, b *tg_bot.Bot) {
+	chatId := utils_context.GetChatIdFromContext(ctx)
+	program := utils_context.GetProgramFromContext(ctx)
 
 	conversation := h.conversationService.CreateConversation(chatId)
 	defer h.conversationService.DeleteConversation(chatId)
 
-	bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-		ChatID:    chatId,
-		Text:      h.textService.EnterExerciseNameMessage(),
-		ParseMode: tg_models.ParseModeMarkdown,
-	})
+	bot_utils.SendMessage(ctx, b, chatId, messages.EnterExerciseNameMessage())
 
 	exerciseName := conversation.WaitAnswer()
 
-	existingExercise := h.exerciseRepository.GetByNameAndProgramId(ctx, exerciseName, programId)
+	existingExercise := h.exerciseRepository.GetByNameAndProgramId(ctx, exerciseName, program.Id)
 
 	if existingExercise != nil {
-		bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-			ChatID:    chatId,
-			Text:      h.textService.ExerciseNameAlreadyExistsMessage(exerciseName),
-			ParseMode: tg_models.ParseModeMarkdown,
-		})
+		bot_utils.SendMessage(ctx, b, chatId, messages.ExerciseNameAlreadyExistsMessage(exerciseName))
 		return
 	}
 
 	h.exerciseRepository.Create(ctx, models.Exercise{
 		Name:      exerciseName,
-		ProgramId: programId,
+		ProgramId: program.Id,
 	})
 
-	bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-		ChatID:    chatId,
-		Text:      h.textService.ExerciseSuccessfullyAddedMessage(exerciseName, program.Name),
-		ParseMode: tg_models.ParseModeMarkdown,
-	})
+	bot_utils.SendMessage(ctx, b, chatId, messages.ExerciseSuccessfullyAddedMessage(exerciseName, program.Name))
 
-	h.backToSelectedProgram(ctx, b, update, program)
+	h.backToSelectedProgram(ctx, b, program)
 }
 
-func (h *exerciseHandler) list(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
-	chatId := bot_utils.GetChatID(update)
-	programId := bot_utils.GetProgramId(update)
-
-	program := h.programRepository.GetById(ctx, programId)
-
-	if program == nil {
-		h.logger.Error(fmt.Sprintf("Program not found: %d", programId))
-		bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-			ChatID:    chatId,
-			Text:      h.textService.ErrorMessage(),
-			ParseMode: tg_models.ParseModeMarkdown,
-		})
-		return
-	}
+func (h *exerciseHandler) list(ctx context.Context, b *tg_bot.Bot) {
+	chatId := utils_context.GetChatIdFromContext(ctx)
+	program := utils_context.GetProgramFromContext(ctx)
 
 	if len(program.Exercises) == 0 {
-		bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-			ChatID:    chatId,
-			Text:      h.textService.NoExercisesMessage(program.Name),
-			ParseMode: tg_models.ParseModeMarkdown,
-		})
+		bot_utils.SendMessage(ctx, b, chatId, messages.NoExercisesMessage(program.Name))
 		return
 	}
 
-	bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-		ChatID:    chatId,
-		Text:      h.textService.ExercisesMessage(program.Name, program.Exercises),
-		ParseMode: tg_models.ParseModeMarkdown,
-	})
+	bot_utils.SendMessage(ctx, b, chatId, messages.ExercisesMessage(program.Name, program.Exercises))
 
-	h.backToSelectedProgram(ctx, b, update, program)
+	h.backToSelectedProgram(ctx, b, program)
 }
 
-func (h *exerciseHandler) delete(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
-	chatId := bot_utils.GetChatID(update)
-	programId := bot_utils.GetProgramId(update)
-
-	program := h.programRepository.GetById(ctx, programId)
-
-	if program == nil {
-		h.logger.Error(fmt.Sprintf("Program not found: %d", programId))
-		bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-			ChatID:    chatId,
-			Text:      h.textService.ErrorMessage(),
-			ParseMode: tg_models.ParseModeMarkdown,
-		})
-		return
-	}
+func (h *exerciseHandler) delete(ctx context.Context, b *tg_bot.Bot) {
+	chatId := utils_context.GetChatIdFromContext(ctx)
+	program := utils_context.GetProgramFromContext(ctx)
 
 	if len(program.Exercises) == 0 {
-		bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-			ChatID:    chatId,
-			Text:      h.textService.NoExercisesMessage(program.Name),
-			ParseMode: tg_models.ParseModeMarkdown,
-		})
+		bot_utils.SendMessage(ctx, b, chatId, messages.NoExercisesMessage(program.Name))
 		return
 	}
 
-	bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-		ChatID:      chatId,
-		Text:        h.textService.ExerciseDeleteMessage(program.Name),
-		ParseMode:   tg_models.ParseModeMarkdown,
-		ReplyMarkup: h.inlineKeyboardService.ProgramExerciseDeleteList(program.Id, program.Exercises),
-	})
+	msg := messages.ExerciseDeleteMessage(program.Name)
+	kb := h.inlineKeyboardService.ProgramExerciseDeleteList(program.Id, program.Exercises)
+
+	bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, msg, kb)
+}
+	
+func (h *exerciseHandler) deleteItem(ctx context.Context, b *tg_bot.Bot) {
+	chatId := utils_context.GetChatIdFromContext(ctx)
+	program := utils_context.GetProgramFromContext(ctx)
+	exercise := utils_context.GetExerciseFromContext(ctx)
+
+	if exercise.ProgramId != program.Id {
+		bot_utils.SendMessage(ctx, b, chatId, messages.ExerciseNotFoundMessage(exercise.Id))
+		return
+	}
+
+	h.exerciseRepository.DeleteById(ctx, exercise.Id)
+
+	bot_utils.SendMessage(ctx, b, chatId, messages.ExerciseSuccessfullyDeletedMessage(exercise.Name, program.Name))
+
+	h.backToSelectedProgram(ctx, b, program)
 }
 
-func (h *exerciseHandler) deleteItem(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
-	chatId := bot_utils.GetChatID(update)
-	programId := bot_utils.GetProgramId(update)
-	exerciseId := bot_utils.GetExerciseId(update)
+func (h *exerciseHandler) backToSelectedProgram(ctx context.Context, b *tg_bot.Bot, program *models.Program) {
+	chatId := utils_context.GetChatIdFromContext(ctx)
 
-	program := h.programRepository.GetById(ctx, programId)
-
-	if program == nil {
-		h.logger.Error(fmt.Sprintf("Program not found: %d", programId))
-		bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-			ChatID:    chatId,
-			Text:      h.textService.ErrorMessage(),
-			ParseMode: tg_models.ParseModeMarkdown,
-		})
-		return
-	}
-
-	exercise := h.exerciseRepository.GetByIdAndProgramId(ctx, exerciseId, programId)
-
-	if exercise == nil {
-		h.logger.Error(fmt.Sprintf("Exercise not found: %d", exerciseId))
-		bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-			ChatID:    chatId,
-			Text:      h.textService.ErrorMessage(),
-			ParseMode: tg_models.ParseModeMarkdown,
-		})
-		return
-	}
-
-	h.exerciseRepository.DeleteById(ctx, exerciseId)
-
-	bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-		ChatID:    chatId,
-		Text:      h.textService.ExerciseSuccessfullyDeletedMessage(exercise.Name, program.Name),
-		ParseMode: tg_models.ParseModeMarkdown,
-	})
-
-	h.backToSelectedProgram(ctx, b, update, program)
-}
-
-func (h *exerciseHandler) backToSelectedProgram(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update, program *models.Program) {
-	chatId := bot_utils.GetChatID(update)
-
-	bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-		ChatID:      chatId,
-		Text:        h.textService.SelectProgramOptionMessage(program.Name),
-		ParseMode:   tg_models.ParseModeMarkdown,
-		ReplyMarkup: h.inlineKeyboardService.ProgramSelectedMenu(program.Id),
-	})
+	msg := messages.SelectProgramOptionMessage(program.Name)
+	bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, msg, h.inlineKeyboardService.ProgramSelectedMenu(program.Id))
 }

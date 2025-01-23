@@ -7,6 +7,8 @@ import (
 	"go.uber.org/dig"
 	"rezvin-pro-bot/services"
 	bot_utils "rezvin-pro-bot/utils/bot"
+	utils_context "rezvin-pro-bot/utils/context"
+	"rezvin-pro-bot/utils/messages"
 )
 
 type IDefaultHandler interface {
@@ -16,24 +18,21 @@ type IDefaultHandler interface {
 type defaultHandlerDependencies struct {
 	dig.In
 
-	TextService         services.ITextService         `name:"TextService"`
 	ConversationService services.IConversationService `name:"ConversationService"`
 }
 
 type defaultHandler struct {
-	textService         services.ITextService
 	conversationService services.IConversationService
 }
 
 func NewDefaultHandler(deps defaultHandlerDependencies) *defaultHandler {
 	return &defaultHandler{
-		textService:         deps.TextService,
 		conversationService: deps.ConversationService,
 	}
 }
 
 func (h *defaultHandler) Handle(ctx context.Context, b *tg_bot.Bot, update *models.Update) {
-	chatId := bot_utils.GetChatID(update)
+	chatId := utils_context.GetChatIdFromContext(ctx)
 
 	if h.conversationService.IsConversationExists(chatId) {
 		conversation := h.conversationService.GetConversation(chatId)
@@ -42,9 +41,5 @@ func (h *defaultHandler) Handle(ctx context.Context, b *tg_bot.Bot, update *mode
 		return
 	}
 
-	bot_utils.MustSendMessage(ctx, b, &tg_bot.SendMessageParams{
-		ChatID:    chatId,
-		Text:      h.textService.DefaultMessage(),
-		ParseMode: models.ParseModeMarkdown,
-	})
+	bot_utils.SendMessage(ctx, b, chatId, messages.DefaultMessage())
 }

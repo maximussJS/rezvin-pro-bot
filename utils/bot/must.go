@@ -7,15 +7,32 @@ import (
 	. "rezvin-pro-bot/utils"
 )
 
-func MustSendMessage(ctx context.Context, b *tg_bot.Bot, params *tg_bot.SendMessageParams) *models.Message {
-	msg, err := b.SendMessage(ctx, params)
+func SendMessage(ctx context.Context, b *tg_bot.Bot, chatId int64, message string) *models.Message {
+	msg, err := b.SendMessage(ctx, &tg_bot.SendMessageParams{
+		ChatID:    chatId,
+		Text:      message,
+		ParseMode: models.ParseModeMarkdown,
+	})
 
 	PanicIfError(err)
 
 	return msg
 }
 
-func MustAnswerCallbackQuery(ctx context.Context, b *tg_bot.Bot, update *models.Update) bool {
+func SendMessageWithInlineKeyboard(ctx context.Context, b *tg_bot.Bot, chatId int64, message string, kb *models.InlineKeyboardMarkup) *models.Message {
+	msg, err := b.SendMessage(ctx, &tg_bot.SendMessageParams{
+		ChatID:      chatId,
+		Text:        message,
+		ReplyMarkup: kb,
+		ParseMode:   models.ParseModeMarkdown,
+	})
+
+	PanicIfError(err)
+
+	return msg
+}
+
+func AnswerCallbackQuery(ctx context.Context, b *tg_bot.Bot, update *models.Update) bool {
 	result, err := b.AnswerCallbackQuery(ctx, &tg_bot.AnswerCallbackQueryParams{
 		CallbackQueryID: update.CallbackQuery.ID,
 		ShowAlert:       false,
