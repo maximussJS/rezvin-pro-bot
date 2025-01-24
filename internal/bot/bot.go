@@ -35,6 +35,8 @@ type botDependencies struct {
 	PendingUsersHandler callback_queries.IPendingUsersHandler `name:"PendingUsersHandler"`
 	BackHandler         callback_queries.IBackHandler         `name:"BackHandler"`
 	ClientHandler       callback_queries.IClientHandler       `name:"ClientHandler"`
+	UserHandler         callback_queries.IUserHandler         `name:"UserHandler"`
+	MainHandler         callback_queries.IMainHandler         `name:"MainHandler"`
 
 	UserRepository               repositories.IUserRepository               `name:"UserRepository"`
 	ProgramRepository            repositories.IProgramRepository            `name:"ProgramRepository"`
@@ -60,6 +62,8 @@ type bot struct {
 	pendingUsersHandler callback_queries.IPendingUsersHandler
 	backHandler         callback_queries.IBackHandler
 	clientHandler       callback_queries.IClientHandler
+	userHandler         callback_queries.IUserHandler
+	mainHandler         callback_queries.IMainHandler
 
 	userRepository               repositories.IUserRepository
 	programRepository            repositories.IProgramRepository
@@ -81,6 +85,8 @@ func NewBot(deps botDependencies) *bot {
 		exerciseHandler:              deps.ExerciseHandler,
 		pendingUsersHandler:          deps.PendingUsersHandler,
 		backHandler:                  deps.BackHandler,
+		userHandler:                  deps.UserHandler,
+		mainHandler:                  deps.MainHandler,
 		clientHandler:                deps.ClientHandler,
 		userRepository:               deps.UserRepository,
 		programRepository:            deps.ProgramRepository,
@@ -149,7 +155,10 @@ func (bot *bot) registerHandlers() {
 
 	bot.registerCommand(constants.CommandStart, bot.commandsHandler.Start, bot.commandMiddlewares())
 
-	bot.registerCallbackQueryByPrefix(callback_data.UserPrefix, bot.registerHandler.Handle, bot.userMiddlewares())
+	bot.registerCallbackQueryByPrefix(callback_data.MainPrefix, bot.mainHandler.Handle, bot.mainMiddlewares())
+
+	bot.registerCallbackQueryByPrefix(callback_data.RegisterPrefix, bot.registerHandler.Handle, bot.userMiddlewares())
+	bot.registerCallbackQueryByPrefix(callback_data.UserPrefix, bot.userHandler.Handle, bot.userMiddlewares())
 
 	bot.registerCallbackQueryByPrefix(callback_data.ProgramPrefix, bot.programHandler.Handle, bot.adminMiddlewares())
 	bot.registerCallbackQueryByPrefix(callback_data.ExercisePrefix, bot.exerciseHandler.Handle, bot.adminMiddlewares())

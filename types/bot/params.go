@@ -1,6 +1,9 @@
 package bot_types
 
-import "fmt"
+import (
+	"fmt"
+	"rezvin-pro-bot/constants"
+)
 
 type Params struct {
 	ProgramId            uint
@@ -19,8 +22,8 @@ func NewEmptyParams() *Params {
 		ExerciseId:           0,
 		UserProgramId:        0,
 		UserExerciseRecordId: 0,
-		Limit:                5,
-		Offset:               0,
+		Limit:                constants.DefaultLimit,
+		Offset:               constants.DefaultOffset,
 	}
 }
 

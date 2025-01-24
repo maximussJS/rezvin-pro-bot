@@ -12,6 +12,7 @@ import (
 	"rezvin-pro-bot/services"
 	bot_utils "rezvin-pro-bot/utils/bot"
 	utils_context "rezvin-pro-bot/utils/context"
+	"rezvin-pro-bot/utils/inline_keyboards"
 	"rezvin-pro-bot/utils/messages"
 	"strings"
 )
@@ -23,26 +24,23 @@ type IProgramHandler interface {
 type programHandlerDependencies struct {
 	dig.In
 
-	Logger                logger.ILogger                  `name:"Logger"`
-	ConversationService   services.IConversationService   `name:"ConversationService"`
-	InlineKeyboardService services.IInlineKeyboardService `name:"InlineKeyboardService"`
+	Logger              logger.ILogger                `name:"Logger"`
+	ConversationService services.IConversationService `name:"ConversationService"`
 
 	ProgramRepository repositories.IProgramRepository `name:"ProgramRepository"`
 }
 
 type programHandler struct {
-	logger                logger.ILogger
-	conversationService   services.IConversationService
-	inlineKeyboardService services.IInlineKeyboardService
-	programRepository     repositories.IProgramRepository
+	logger              logger.ILogger
+	conversationService services.IConversationService
+	programRepository   repositories.IProgramRepository
 }
 
 func NewProgramHandler(deps programHandlerDependencies) *programHandler {
 	return &programHandler{
-		logger:                deps.Logger,
-		inlineKeyboardService: deps.InlineKeyboardService,
-		conversationService:   deps.ConversationService,
-		programRepository:     deps.ProgramRepository,
+		logger:              deps.Logger,
+		conversationService: deps.ConversationService,
+		programRepository:   deps.ProgramRepository,
 	}
 }
 
@@ -64,20 +62,25 @@ func (h *programHandler) Handle(ctx context.Context, b *tg_bot.Bot, update *tg_m
 		return
 	}
 
+	if strings.HasPrefix(callbackDataQuery, callback_data.ProgramList) {
+		h.list(ctx, b)
+		return
+	}
+
 	switch update.CallbackQuery.Data {
 	case callback_data.ProgramMenu:
 		h.menu(ctx, b)
 	case callback_data.ProgramAdd:
 		h.add(ctx, b)
-	case callback_data.ProgramList:
-		h.list(ctx, b)
 	}
 }
 
 func (h *programHandler) menu(ctx context.Context, b *tg_bot.Bot) {
 	chatId := utils_context.GetChatIdFromContext(ctx)
 
-	bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, messages.ProgramMenuMessage(), h.inlineKeyboardService.ProgramMenu())
+	msg := messages.ProgramMenuMessage()
+
+	bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, msg, inline_keyboards.ProgramMenu())
 }
 
 func (h *programHandler) add(ctx context.Context, b *tg_bot.Bot) {
@@ -116,7 +119,9 @@ func (h *programHandler) list(ctx context.Context, b *tg_bot.Bot) {
 		return
 	}
 
-	kb := h.inlineKeyboardService.ProgramList(programs)
+	programsCount := h.programRepository.CountAll(ctx)
+
+	kb := inline_keyboards.ProgramList(programs, programsCount, limit, offset)
 
 	bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, messages.SelectProgramMessage(), kb)
 }
@@ -126,7 +131,7 @@ func (h *programHandler) selected(ctx context.Context, b *tg_bot.Bot) {
 	program := utils_context.GetProgramFromContext(ctx)
 
 	msg := messages.SelectProgramOptionMessage(program.Name)
-	kb := h.inlineKeyboardService.ProgramSelectedMenu(program.Id)
+	kb := inline_keyboards.ProgramSelectedMenu(program.Id)
 
 	bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, msg, kb)
 }

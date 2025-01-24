@@ -12,6 +12,8 @@ import (
 
 type IExerciseRepository interface {
 	Create(ctx context.Context, exercise models.Exercise) uint
+	CountByProgramId(ctx context.Context, programId uint) int64
+	GetByProgramId(ctx context.Context, programId uint, limit, offset int) []models.Exercise
 	GetById(ctx context.Context, id uint) *models.Exercise
 	GetByIdAndProgramId(ctx context.Context, id, programId uint) *models.Exercise
 	GetAll(ctx context.Context, limit, offset int) []models.Exercise
@@ -62,6 +64,26 @@ func (r *exerciseRepository) GetById(ctx context.Context, id uint) *models.Exerc
 	utils.PanicIfNotRecordNotFound(err)
 
 	return &exercise
+}
+
+func (r *exerciseRepository) GetByProgramId(ctx context.Context, programId uint, limit, offset int) []models.Exercise {
+	var exercises []models.Exercise
+
+	err := r.db.WithContext(ctx).Limit(limit).Offset(offset).Where("program_id = ?", programId).Find(&exercises).Error
+
+	utils.PanicIfNotContextError(err)
+
+	return exercises
+}
+
+func (r *exerciseRepository) CountByProgramId(ctx context.Context, programId uint) int64 {
+	var count int64
+
+	err := r.db.WithContext(ctx).Model(&models.Exercise{}).Where("program_id = ?", programId).Count(&count).Error
+
+	utils.PanicIfNotContextError(err)
+
+	return count
 }
 
 func (r *exerciseRepository) GetByIdAndProgramId(ctx context.Context, id, programId uint) *models.Exercise {

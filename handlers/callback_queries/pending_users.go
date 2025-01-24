@@ -12,6 +12,7 @@ import (
 	"rezvin-pro-bot/services"
 	bot_utils "rezvin-pro-bot/utils/bot"
 	utils_context "rezvin-pro-bot/utils/context"
+	"rezvin-pro-bot/utils/inline_keyboards"
 	"rezvin-pro-bot/utils/messages"
 	"strings"
 )
@@ -23,30 +24,32 @@ type IPendingUsersHandler interface {
 type pendingUsersHandlerDependencies struct {
 	dig.In
 
-	Logger                logger.ILogger                  `name:"Logger"`
-	ConversationService   services.IConversationService   `name:"ConversationService"`
-	InlineKeyboardService services.IInlineKeyboardService `name:"InlineKeyboardService"`
-	UserRepository        repositories.IUserRepository    `name:"UserRepository"`
+	Logger              logger.ILogger                `name:"Logger"`
+	ConversationService services.IConversationService `name:"ConversationService"`
+	UserRepository      repositories.IUserRepository  `name:"UserRepository"`
 }
 
 type pendingUsersHandler struct {
-	logger                logger.ILogger
-	conversationService   services.IConversationService
-	inlineKeyboardService services.IInlineKeyboardService
-	userRepository        repositories.IUserRepository
+	logger              logger.ILogger
+	conversationService services.IConversationService
+	userRepository      repositories.IUserRepository
 }
 
 func NewPendingUsersHandler(deps pendingUsersHandlerDependencies) *pendingUsersHandler {
 	return &pendingUsersHandler{
-		logger:                deps.Logger,
-		conversationService:   deps.ConversationService,
-		inlineKeyboardService: deps.InlineKeyboardService,
-		userRepository:        deps.UserRepository,
+		logger:              deps.Logger,
+		conversationService: deps.ConversationService,
+		userRepository:      deps.UserRepository,
 	}
 }
 
 func (h *pendingUsersHandler) Handle(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
 	callbackQueryData := update.CallbackQuery.Data
+
+	if strings.HasPrefix(callbackQueryData, callback_data.PendingUsersList) {
+		h.list(ctx, b)
+		return
+	}
 
 	if strings.HasPrefix(callbackQueryData, callback_data.PendingUsersSelected) {
 		h.selected(ctx, b)
@@ -62,11 +65,6 @@ func (h *pendingUsersHandler) Handle(ctx context.Context, b *tg_bot.Bot, update 
 		h.decline(ctx, b)
 		return
 	}
-
-	switch callbackQueryData {
-	case callback_data.PendingUsersList:
-		h.list(ctx, b)
-	}
 }
 
 func (h *pendingUsersHandler) list(ctx context.Context, b *tg_bot.Bot) {
@@ -81,7 +79,9 @@ func (h *pendingUsersHandler) list(ctx context.Context, b *tg_bot.Bot) {
 		return
 	}
 
-	kb := h.inlineKeyboardService.PendingUsersList(users)
+	usersCount := h.userRepository.CountPendingUsers(ctx)
+
+	kb := inline_keyboards.PendingUsersList(users, usersCount, limit, offset)
 
 	bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, messages.SelectPendingUserMessage(), kb)
 }
@@ -91,7 +91,9 @@ func (h *pendingUsersHandler) selected(ctx context.Context, b *tg_bot.Bot) {
 	user := utils_context.GetUserFromContext(ctx)
 
 	msg := messages.SelectPendingUserOptionMessage(user.GetPrivateName())
-	bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, msg, h.inlineKeyboardService.PendingUserDecide(*user))
+	kb := inline_keyboards.PendingUserDecide(*user)
+
+	bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, msg, kb)
 }
 
 func (h *pendingUsersHandler) approve(ctx context.Context, b *tg_bot.Bot) {

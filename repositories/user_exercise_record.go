@@ -20,7 +20,10 @@ type IUserExerciseRecordRepository interface {
 	Create(ctx context.Context, record models.UserExerciseRecord)
 	CreateMany(ctx context.Context, records []models.UserExerciseRecord)
 	GetById(ctx context.Context, id uint) *models.UserExerciseRecord
-	GetByUserProgramId(ctx context.Context, userProgramId uint) []models.UserExerciseRecord
+	CountAllByUserProgramId(ctx context.Context, userProgramId uint) int64
+	GetAllByUserProgramId(ctx context.Context, userProgramId uint) []models.UserExerciseRecord
+	GetByUserProgramId(ctx context.Context, userProgramId uint, limit, offset int) []models.UserExerciseRecord
+	UpdateById(ctx context.Context, id uint, record models.UserExerciseRecord)
 	UpdateByUserIdAndExerciseId(ctx context.Context, userId int64, exerciseId uint, record models.UserExerciseRecord)
 	DeleteByUserProgramId(ctx context.Context, userProgramId uint)
 }
@@ -57,10 +60,25 @@ func (r *userExerciseRecordRepository) CreateMany(ctx context.Context, records [
 	utils.PanicIfNotContextError(err)
 }
 
+func (r *userExerciseRecordRepository) CountAllByUserProgramId(ctx context.Context, userProgramId uint) int64 {
+	var count int64
+
+	err := r.db.WithContext(ctx).
+		Model(&models.UserExerciseRecord{}).
+		Where("user_program_id = ?", userProgramId).
+		Count(&count).
+		Error
+
+	utils.PanicIfNotContextError(err)
+
+	return count
+}
+
 func (r *userExerciseRecordRepository) GetById(ctx context.Context, id uint) *models.UserExerciseRecord {
 	var record models.UserExerciseRecord
 
 	err := r.db.WithContext(ctx).
+		Preload("Exercise").
 		Where("id = ?", id).
 		First(&record).
 		Error
@@ -72,18 +90,48 @@ func (r *userExerciseRecordRepository) GetById(ctx context.Context, id uint) *mo
 	return &record
 }
 
-func (r *userExerciseRecordRepository) GetByUserProgramId(ctx context.Context, userProgramId uint) []models.UserExerciseRecord {
+func (r *userExerciseRecordRepository) GetAllByUserProgramId(ctx context.Context, userProgramId uint) []models.UserExerciseRecord {
 	var records []models.UserExerciseRecord
 
 	err := r.db.WithContext(ctx).
 		Preload("Exercise").
 		Where("user_program_id = ?", userProgramId).
+		Order("reps ASC").
 		Find(&records).
 		Error
 
 	utils.PanicIfNotContextError(err)
 
 	return records
+}
+
+func (r *userExerciseRecordRepository) GetByUserProgramId(
+	ctx context.Context,
+	userProgramId uint,
+	limit, offset int,
+) []models.UserExerciseRecord {
+	var records []models.UserExerciseRecord
+
+	err := r.db.WithContext(ctx).
+		Preload("Exercise").
+		Where("user_program_id = ?", userProgramId).
+		Order("reps ASC").
+		Limit(limit).
+		Offset(offset).
+		Find(&records).
+		Error
+
+	utils.PanicIfNotContextError(err)
+
+	return records
+}
+
+func (r *userExerciseRecordRepository) UpdateById(ctx context.Context, id uint, record models.UserExerciseRecord) {
+	err := r.db.WithContext(ctx).
+		Where("id = ?", id).
+		Updates(&record).Error
+
+	utils.PanicIfNotContextError(err)
 }
 
 func (r *userExerciseRecordRepository) UpdateByUserIdAndExerciseId(

@@ -2,17 +2,17 @@ package callback_queries
 
 import (
 	"context"
-	"fmt"
 	tg_bot "github.com/go-telegram/bot"
 	tg_models "github.com/go-telegram/bot/models"
 	"go.uber.org/dig"
 	"rezvin-pro-bot/constants/callback_data"
 	"rezvin-pro-bot/internal/logger"
 	"rezvin-pro-bot/repositories"
-	"rezvin-pro-bot/services"
 	bot_utils "rezvin-pro-bot/utils/bot"
 	utils_context "rezvin-pro-bot/utils/context"
+	"rezvin-pro-bot/utils/inline_keyboards"
 	"rezvin-pro-bot/utils/messages"
+	"strings"
 )
 
 type IBackHandler interface {
@@ -22,90 +22,54 @@ type IBackHandler interface {
 type backHandlerDependencies struct {
 	dig.In
 
-	Logger                logger.ILogger                  `name:"Logger"`
-	InlineKeyboardService services.IInlineKeyboardService `name:"InlineKeyboardService"`
+	Logger logger.ILogger `name:"Logger"`
 
 	UserRepository    repositories.IUserRepository    `name:"UserRepository"`
 	ProgramRepository repositories.IProgramRepository `name:"ProgramRepository"`
 }
 
 type backHandler struct {
-	logger                logger.ILogger
-	inlineKeyboardService services.IInlineKeyboardService
-	userRepository        repositories.IUserRepository
-	programRepository     repositories.IProgramRepository
+	logger            logger.ILogger
+	userRepository    repositories.IUserRepository
+	programRepository repositories.IProgramRepository
 }
 
 func NewBackHandler(deps backHandlerDependencies) *backHandler {
 	return &backHandler{
-		logger:                deps.Logger,
-		inlineKeyboardService: deps.InlineKeyboardService,
-		userRepository:        deps.UserRepository,
-		programRepository:     deps.ProgramRepository,
+		logger:            deps.Logger,
+		userRepository:    deps.UserRepository,
+		programRepository: deps.ProgramRepository,
 	}
 }
 
 func (h *backHandler) Handle(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
-	switch update.CallbackQuery.Data {
-	case callback_data.BackToMain:
-		h.backToMain(ctx, b, update)
-	case callback_data.BackToStart:
-		h.backToStart(ctx, b)
-	case callback_data.BackToProgramMenu:
+	callBackQueryData := update.CallbackQuery.Data
+
+	if strings.HasPrefix(callBackQueryData, callback_data.BackToProgramMenu) {
 		h.backToProgramMenu(ctx, b)
-	case callback_data.BackToProgramList:
-		h.backToProgramList(ctx, b)
-	case callback_data.BackToPendingUsersList:
-		h.backToPendingUsersList(ctx, b)
-	case callback_data.BackToClientList:
-		h.backToClientList(ctx, b)
-	}
-}
-
-func (h *backHandler) backToMain(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
-	chatId := utils_context.GetChatIdFromContext(ctx)
-
-	userId := bot_utils.GetUserID(update)
-	firstName := bot_utils.GetFirstName(update)
-	lastName := bot_utils.GetLastName(update)
-
-	user := h.userRepository.GetById(ctx, userId)
-
-	if user == nil {
-		name := fmt.Sprintf("%s %s", firstName, lastName)
-
-		kb := h.inlineKeyboardService.UserRegister()
-		bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, messages.NeedRegister(name), kb)
 		return
 	}
 
-	if user.IsAdmin {
-		kb := h.inlineKeyboardService.AdminMain()
-		bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, messages.AdminMainMessage(), kb)
-	} else {
-		if user.IsApproved {
-			msg := messages.UserMenuMessage(user.GetPrivateName())
-			bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, msg, h.inlineKeyboardService.UserMenu())
-		} else {
-			if user.IsDeclined {
-				bot_utils.SendMessage(ctx, b, chatId, messages.UserDeclinedMessage(user.GetPublicName()))
-			} else {
-				bot_utils.SendMessage(ctx, b, chatId, messages.AlreadyRegistered())
-			}
-		}
+	if strings.HasPrefix(callBackQueryData, callback_data.BackToProgramList) {
+		h.backToProgramList(ctx, b)
+		return
 	}
-}
 
-func (h *backHandler) backToStart(ctx context.Context, b *tg_bot.Bot) {
-	chatId := utils_context.GetChatIdFromContext(ctx)
+	if strings.HasPrefix(callBackQueryData, callback_data.BackToPendingUsersList) {
+		h.backToPendingUsersList(ctx, b)
+		return
+	}
 
-	bot_utils.SendMessage(ctx, b, chatId, messages.PressStartMessage())
+	if strings.HasPrefix(callBackQueryData, callback_data.BackToClientList) {
+		h.backToClientList(ctx, b)
+		return
+	}
 }
 
 func (h *backHandler) backToProgramMenu(ctx context.Context, b *tg_bot.Bot) {
 	chatId := utils_context.GetChatIdFromContext(ctx)
 
-	kb := h.inlineKeyboardService.ProgramMenu()
+	kb := inline_keyboards.ProgramMenu()
 
 	bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, messages.ProgramMenuMessage(), kb)
 }
@@ -122,7 +86,9 @@ func (h *backHandler) backToProgramList(ctx context.Context, b *tg_bot.Bot) {
 		return
 	}
 
-	kb := h.inlineKeyboardService.ProgramList(programs)
+	programsCount := h.programRepository.CountAll(ctx)
+
+	kb := inline_keyboards.ProgramList(programs, programsCount, limit, offset)
 
 	bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, messages.SelectProgramMessage(), kb)
 }
@@ -139,7 +105,9 @@ func (h *backHandler) backToPendingUsersList(ctx context.Context, b *tg_bot.Bot)
 		return
 	}
 
-	kb := h.inlineKeyboardService.PendingUsersList(users)
+	usersCount := h.userRepository.CountPendingUsers(ctx)
+
+	kb := inline_keyboards.PendingUsersList(users, usersCount, limit, offset)
 
 	bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, messages.SelectPendingUserMessage(), kb)
 }
@@ -156,7 +124,9 @@ func (h *backHandler) backToClientList(ctx context.Context, b *tg_bot.Bot) {
 		return
 	}
 
-	kb := h.inlineKeyboardService.ClientList(clients)
+	clientsCount := h.userRepository.CountClients(ctx)
+
+	kb := inline_keyboards.ClientList(clients, clientsCount, limit, offset)
 
 	bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, messages.SelectClientMessage(), kb)
 }

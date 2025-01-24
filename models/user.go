@@ -46,3 +46,11 @@ func (u *User) GetPublicName() string {
 
 	return text
 }
+
+func (u *User) IsNotApproved() bool {
+	return !u.IsApproved
+}
+
+func (u *User) IsNotAdmin() bool {
+	return !u.IsAdmin
+}

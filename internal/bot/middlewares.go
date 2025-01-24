@@ -17,8 +17,10 @@ func (bot *bot) answerCallbackQueryMiddleware(next tg_bot.HandlerFunc) tg_bot.Ha
 		answerResult := bot_utils.AnswerCallbackQuery(ctx, b, update)
 
 		if !answerResult {
+			chatId := utils_context.GetChatIdFromContext(ctx)
+
 			bot.logger.Error(fmt.Sprintf("Failed to answer callback query: %s", update.CallbackQuery.ID))
-			bot_utils.SendMessage(ctx, b, bot_utils.GetChatID(update), messages.ErrorMessage())
+			bot_utils.SendMessage(ctx, b, chatId, messages.ErrorMessage())
 			return
 		}
 
@@ -26,15 +28,57 @@ func (bot *bot) answerCallbackQueryMiddleware(next tg_bot.HandlerFunc) tg_bot.Ha
 	}
 }
 
-func (bot *bot) isAdminMiddleware(next tg_bot.HandlerFunc) tg_bot.HandlerFunc {
+func (bot *bot) isRegisteredMiddleware(next tg_bot.HandlerFunc) tg_bot.HandlerFunc {
 	return func(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
-		chatID := bot_utils.GetChatID(update)
 		userId := bot_utils.GetUserID(update)
 
 		user := bot.userRepository.GetById(ctx, userId)
 
-		if user == nil || !user.IsAdmin {
-			bot_utils.SendMessage(ctx, b, chatID, messages.AdminOnlyMessage())
+		if user == nil {
+			chatId := utils_context.GetChatIdFromContext(ctx)
+			firstName := bot_utils.GetFirstName(update)
+			lastName := bot_utils.GetLastName(update)
+
+			name := fmt.Sprintf("%s %s", firstName, lastName)
+
+			bot_utils.SendMessage(ctx, b, chatId, messages.NeedRegister(name))
+			return
+		}
+
+		if user.IsNotApproved() {
+			chatId := utils_context.GetChatIdFromContext(ctx)
+
+			bot_utils.SendMessage(ctx, b, chatId, messages.UserNotApprovedMessage())
+			return
+		}
+
+		next(utils_context.GetContextWithCurrentUser(ctx, user), b, update)
+	}
+}
+
+func (bot *bot) isApprovedMiddleware(next tg_bot.HandlerFunc) tg_bot.HandlerFunc {
+	return func(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
+		user := utils_context.GetCurrentUserFromContext(ctx)
+
+		if user.IsNotApproved() {
+			chatId := utils_context.GetChatIdFromContext(ctx)
+
+			bot_utils.SendMessage(ctx, b, chatId, messages.UserNotApprovedMessage())
+			return
+		}
+
+		next(utils_context.GetContextWithCurrentUser(ctx, user), b, update)
+	}
+}
+
+func (bot *bot) isAdminMiddleware(next tg_bot.HandlerFunc) tg_bot.HandlerFunc {
+	return func(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
+		user := utils_context.GetCurrentUserFromContext(ctx)
+
+		if user.IsNotAdmin() {
+			chatId := utils_context.GetChatIdFromContext(ctx)
+
+			bot_utils.SendMessage(ctx, b, chatId, messages.AdminOnlyMessage())
 			return
 		}
 
@@ -63,18 +107,19 @@ func (bot *bot) chatIdMiddleware(next tg_bot.HandlerFunc) tg_bot.HandlerFunc {
 func (bot *bot) parseParamsMiddleware(next tg_bot.HandlerFunc) tg_bot.HandlerFunc {
 	return func(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
 		callbackQueryData := update.CallbackQuery.Data
+		chatId := utils_context.GetChatIdFromContext(ctx)
 
 		params, err := bot_utils.ParseParamsFromQueryString(callbackQueryData)
 
 		if err != nil {
 			bot.logger.Error(fmt.Sprintf("Failed to parse params: %s", callbackQueryData))
-			bot_utils.SendMessage(ctx, b, bot_utils.GetChatID(update), messages.ParamsErrorMessage(err))
+			bot_utils.SendMessage(ctx, b, chatId, messages.ParamsErrorMessage(err))
 			return
 		}
 
 		if params == nil {
 			bot.logger.Error(fmt.Sprintf("Failed to parse params: %s", update.Message.Text))
-			bot_utils.SendMessage(ctx, b, bot_utils.GetChatID(update), messages.ErrorMessage())
+			bot_utils.SendMessage(ctx, b, chatId, messages.ErrorMessage())
 			return
 		}
 
@@ -84,7 +129,7 @@ func (bot *bot) parseParamsMiddleware(next tg_bot.HandlerFunc) tg_bot.HandlerFun
 
 func (bot *bot) validateParamsMiddleware(next tg_bot.HandlerFunc) tg_bot.HandlerFunc {
 	return func(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
-		chatId := bot_utils.GetChatID(update)
+		chatId := utils_context.GetChatIdFromContext(ctx)
 		params := utils_context.GetParamsFromContext(ctx)
 
 		newCtx := context.WithoutCancel(ctx)
@@ -155,6 +200,7 @@ func (bot *bot) validateParamsMiddleware(next tg_bot.HandlerFunc) tg_bot.Handler
 func (bot *bot) timeoutMiddleware(next tg_bot.HandlerFunc) tg_bot.HandlerFunc {
 	return func(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
 		timeoutDuration := bot.config.RequestTimeout()
+		chatId := utils_context.GetChatIdFromContext(ctx)
 
 		childCtx, cancel := context.WithTimeout(ctx, timeoutDuration)
 		defer cancel()
@@ -168,7 +214,7 @@ func (bot *bot) timeoutMiddleware(next tg_bot.HandlerFunc) tg_bot.HandlerFunc {
 
 		select {
 		case <-childCtx.Done():
-			bot_utils.SendMessage(ctx, b, bot_utils.GetChatID(update), messages.RequestTimeoutMessage())
+			bot_utils.SendMessage(ctx, b, chatId, messages.RequestTimeoutMessage())
 			return
 		case <-doneCh:
 			return
@@ -207,6 +253,7 @@ func (bot *bot) panicRecoveryMiddleware(next tg_bot.HandlerFunc) tg_bot.HandlerF
 func (bot *bot) adminMiddlewares() []tg_bot.Middleware {
 	return []tg_bot.Middleware{
 		bot.answerCallbackQueryMiddleware,
+		bot.isRegisteredMiddleware,
 		bot.isAdminMiddleware,
 		bot.parseParamsMiddleware,
 		bot.validateParamsMiddleware,
@@ -217,8 +264,18 @@ func (bot *bot) userMiddlewares() []tg_bot.Middleware {
 	return []tg_bot.Middleware{
 		bot.timeoutMiddleware,
 		bot.answerCallbackQueryMiddleware,
+		bot.isRegisteredMiddleware,
+		bot.isApprovedMiddleware,
 		bot.parseParamsMiddleware,
 		bot.validateParamsMiddleware,
+	}
+}
+
+func (bot *bot) mainMiddlewares() []tg_bot.Middleware {
+	return []tg_bot.Middleware{
+		bot.timeoutMiddleware,
+		bot.answerCallbackQueryMiddleware,
+		bot.isRegisteredMiddleware,
 	}
 }
 

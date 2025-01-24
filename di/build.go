@@ -107,11 +107,6 @@ func getServicesDependencies() []Dependency {
 			Interface:   new(services.IConversationService),
 			Token:       "ConversationService",
 		},
-		{
-			Constructor: services.NewInlineKeyboardService,
-			Interface:   new(services.IInlineKeyboardService),
-			Token:       "InlineKeyboardService",
-		},
 	}
 }
 
@@ -156,6 +151,16 @@ func getHandlersDependencies() []Dependency {
 			Constructor: callback_queries.NewClientHandler,
 			Interface:   new(callback_queries.IClientHandler),
 			Token:       "ClientHandler",
+		},
+		{
+			Constructor: callback_queries.NewUserHandler,
+			Interface:   new(callback_queries.IUserHandler),
+			Token:       "UserHandler",
+		},
+		{
+			Constructor: callback_queries.NewMainHandler,
+			Interface:   new(callback_queries.IMainHandler),
+			Token:       "MainHandler",
 		},
 	}
 }

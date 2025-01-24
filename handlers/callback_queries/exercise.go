@@ -12,6 +12,7 @@ import (
 	"rezvin-pro-bot/services"
 	bot_utils "rezvin-pro-bot/utils/bot"
 	utils_context "rezvin-pro-bot/utils/context"
+	"rezvin-pro-bot/utils/inline_keyboards"
 	"rezvin-pro-bot/utils/messages"
 	"strings"
 )
@@ -23,29 +24,26 @@ type IExerciseHandler interface {
 type exerciseHandlerDependencies struct {
 	dig.In
 
-	Logger                logger.ILogger                  `name:"Logger"`
-	ConversationService   services.IConversationService   `name:"ConversationService"`
-	InlineKeyboardService services.IInlineKeyboardService `name:"InlineKeyboardService"`
+	Logger              logger.ILogger                `name:"Logger"`
+	ConversationService services.IConversationService `name:"ConversationService"`
 
 	ProgramRepository  repositories.IProgramRepository  `name:"ProgramRepository"`
 	ExerciseRepository repositories.IExerciseRepository `name:"ExerciseRepository"`
 }
 
 type exerciseHandler struct {
-	logger                logger.ILogger
-	conversationService   services.IConversationService
-	inlineKeyboardService services.IInlineKeyboardService
-	programRepository     repositories.IProgramRepository
-	exerciseRepository    repositories.IExerciseRepository
+	logger              logger.ILogger
+	conversationService services.IConversationService
+	programRepository   repositories.IProgramRepository
+	exerciseRepository  repositories.IExerciseRepository
 }
 
 func NewExerciseHandler(deps exerciseHandlerDependencies) *exerciseHandler {
 	return &exerciseHandler{
-		logger:                deps.Logger,
-		inlineKeyboardService: deps.InlineKeyboardService,
-		conversationService:   deps.ConversationService,
-		programRepository:     deps.ProgramRepository,
-		exerciseRepository:    deps.ExerciseRepository,
+		logger:              deps.Logger,
+		conversationService: deps.ConversationService,
+		programRepository:   deps.ProgramRepository,
+		exerciseRepository:  deps.ExerciseRepository,
 	}
 }
 
@@ -118,18 +116,24 @@ func (h *exerciseHandler) list(ctx context.Context, b *tg_bot.Bot) {
 func (h *exerciseHandler) delete(ctx context.Context, b *tg_bot.Bot) {
 	chatId := utils_context.GetChatIdFromContext(ctx)
 	program := utils_context.GetProgramFromContext(ctx)
+	limit := utils_context.GetLimitFromContext(ctx)
+	offset := utils_context.GetOffsetFromContext(ctx)
 
-	if len(program.Exercises) == 0 {
+	exercises := h.exerciseRepository.GetByProgramId(ctx, program.Id, limit, offset)
+
+	if len(exercises) == 0 {
 		bot_utils.SendMessage(ctx, b, chatId, messages.NoExercisesMessage(program.Name))
 		return
 	}
 
+	exercisesCount := h.exerciseRepository.CountByProgramId(ctx, program.Id)
+
 	msg := messages.ExerciseDeleteMessage(program.Name)
-	kb := h.inlineKeyboardService.ProgramExerciseDeleteList(program.Id, program.Exercises)
+	kb := inline_keyboards.ProgramExerciseDeleteList(program.Id, exercises, exercisesCount, limit, offset)
 
 	bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, msg, kb)
 }
-	
+
 func (h *exerciseHandler) deleteItem(ctx context.Context, b *tg_bot.Bot) {
 	chatId := utils_context.GetChatIdFromContext(ctx)
 	program := utils_context.GetProgramFromContext(ctx)
@@ -151,5 +155,5 @@ func (h *exerciseHandler) backToSelectedProgram(ctx context.Context, b *tg_bot.B
 	chatId := utils_context.GetChatIdFromContext(ctx)
 
 	msg := messages.SelectProgramOptionMessage(program.Name)
-	bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, msg, h.inlineKeyboardService.ProgramSelectedMenu(program.Id))
+	bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, msg, inline_keyboards.ProgramSelectedMenu(program.Id))
 }

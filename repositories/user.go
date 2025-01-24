@@ -21,7 +21,9 @@ type IUserRepository interface {
 	Create(ctx context.Context, user models.User) int64
 	GetById(ctx context.Context, id int64) *models.User
 	GetAdminUsers(ctx context.Context) []models.User
+	CountClients(ctx context.Context) int64
 	GetClients(ctx context.Context, limit, offset int) []models.User
+	CountPendingUsers(ctx context.Context) int64
 	GetPendingUsers(ctx context.Context, limit, offset int) []models.User
 	UpdateById(ctx context.Context, id int64, user models.User)
 	DeleteById(ctx context.Context, id int64)
@@ -43,6 +45,21 @@ func NewUserRepository(deps userRepositoryDependencies) *userRepository {
 	}
 }
 
+func (r *userRepository) CountPendingUsers(ctx context.Context) int64 {
+	var count int64
+	err := r.db.WithContext(ctx).
+		Model(&models.User{}).
+		Where("is_approved = ?", false).
+		Where("is_admin = ?", false).
+		Where("is_declined = ?", false).
+		Count(&count).
+		Error
+
+	utils.PanicIfNotContextError(err)
+
+	return count
+}
+
 func (r *userRepository) GetPendingUsers(ctx context.Context, limit, offset int) []models.User {
 	var users []models.User
 	err := r.db.WithContext(ctx).
@@ -57,6 +74,21 @@ func (r *userRepository) GetPendingUsers(ctx context.Context, limit, offset int)
 	utils.PanicIfNotContextError(err)
 
 	return users
+}
+
+func (r *userRepository) CountClients(ctx context.Context) int64 {
+	var count int64
+	err := r.db.WithContext(ctx).
+		Model(&models.User{}).
+		Where("is_approved = ?", true).
+		Where("is_admin = ?", false).
+		Where("is_declined = ?", false).
+		Count(&count).
+		Error
+
+	utils.PanicIfNotContextError(err)
+
+	return count
 }
 
 func (r *userRepository) GetClients(ctx context.Context, limit, offset int) []models.User {

@@ -7,8 +7,9 @@ import (
 	"github.com/go-telegram/bot/models"
 	"go.uber.org/dig"
 	"rezvin-pro-bot/repositories"
-	"rezvin-pro-bot/services"
 	bot_utils "rezvin-pro-bot/utils/bot"
+	utils_context "rezvin-pro-bot/utils/context"
+	"rezvin-pro-bot/utils/inline_keyboards"
 	"rezvin-pro-bot/utils/messages"
 )
 
@@ -19,27 +20,22 @@ type ICommandHandler interface {
 type commandHandlerDependencies struct {
 	dig.In
 
-	InlineKeyboardService services.IInlineKeyboardService `name:"InlineKeyboardService"`
-
 	UserRepository repositories.IUserRepository `name:"UserRepository"`
 }
 
 type commandHandler struct {
-	inlineKeyboardService services.IInlineKeyboardService
-
 	userRepository repositories.IUserRepository
 }
 
 func NewCommandHandler(deps commandHandlerDependencies) *commandHandler {
 	return &commandHandler{
-		userRepository:        deps.UserRepository,
-		inlineKeyboardService: deps.InlineKeyboardService,
+		userRepository: deps.UserRepository,
 	}
 }
 
 func (c *commandHandler) Start(ctx context.Context, b *tg_bot.Bot, update *models.Update) {
+	chatId := utils_context.GetChatIdFromContext(ctx)
 	userId := bot_utils.GetUserID(update)
-	chatId := bot_utils.GetChatID(update)
 	firstName := bot_utils.GetFirstName(update)
 	lastName := bot_utils.GetLastName(update)
 
@@ -48,18 +44,18 @@ func (c *commandHandler) Start(ctx context.Context, b *tg_bot.Bot, update *model
 	name := fmt.Sprintf("%s %s", firstName, lastName)
 
 	if user == nil {
-		kb := c.inlineKeyboardService.UserRegister()
+		kb := inline_keyboards.UserRegister()
 		bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, messages.NeedRegister(name), kb)
 		return
 	}
 
 	if user.IsAdmin {
-		kb := c.inlineKeyboardService.AdminMain()
+		kb := inline_keyboards.AdminMain()
 		bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, messages.AdminMainMessage(), kb)
 	} else {
 		if user.IsApproved {
-			msg := messages.UserMenuMessage(user.GetPrivateName())
-			bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, msg, c.inlineKeyboardService.UserMenu())
+			msg := messages.UserMenuMessage(user.GetPublicName())
+			bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, msg, inline_keyboards.UserMenu())
 		} else {
 			if user.IsDeclined {
 				bot_utils.SendMessage(ctx, b, chatId, messages.UserDeclinedMessage(name))

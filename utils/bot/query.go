@@ -24,25 +24,25 @@ func AddParamsToQueryString(prefix string, params *bot_types.Params) string {
 	var paramPairs []string
 
 	if params.ProgramId != 0 {
-		paramPairs = append(paramPairs, fmt.Sprintf("programId=%d", params.ProgramId))
+		paramPairs = append(paramPairs, fmt.Sprintf("pid=%d", params.ProgramId))
 	}
 	if params.UserId != 0 {
-		paramPairs = append(paramPairs, fmt.Sprintf("userId=%d", params.UserId))
+		paramPairs = append(paramPairs, fmt.Sprintf("uid=%d", params.UserId))
 	}
 	if params.ExerciseId != 0 {
-		paramPairs = append(paramPairs, fmt.Sprintf("exerciseId=%d", params.ExerciseId))
+		paramPairs = append(paramPairs, fmt.Sprintf("eid=%d", params.ExerciseId))
 	}
 	if params.UserProgramId != 0 {
-		paramPairs = append(paramPairs, fmt.Sprintf("userProgramId=%d", params.UserProgramId))
+		paramPairs = append(paramPairs, fmt.Sprintf("upid=%d", params.UserProgramId))
 	}
 	if params.UserExerciseRecordId != 0 {
-		paramPairs = append(paramPairs, fmt.Sprintf("userExerciseRecordId=%d", params.UserExerciseRecordId))
+		paramPairs = append(paramPairs, fmt.Sprintf("uerid=%d", params.UserExerciseRecordId))
 	}
 	if params.Limit != 0 {
-		paramPairs = append(paramPairs, fmt.Sprintf("limit=%d", params.Limit))
+		paramPairs = append(paramPairs, fmt.Sprintf("l=%d", params.Limit))
 	}
 	if params.Offset != 0 {
-		paramPairs = append(paramPairs, fmt.Sprintf("offset=%d", params.Offset))
+		paramPairs = append(paramPairs, fmt.Sprintf("o=%d", params.Offset))
 	}
 
 	if len(paramPairs) == 0 {
@@ -83,43 +83,43 @@ func ParseParamsFromQueryString(queryStr string) (*bot_types.Params, error) {
 		}
 
 		switch key {
-		case "programId":
+		case "pid":
 			parsedValue, err := strconv.ParseUint(value, 10, 32)
 			if err != nil {
 				return nil, fmt.Errorf("invalid programId: %v", err)
 			}
 			params.ProgramId = uint(parsedValue)
-		case "userId":
+		case "uid":
 			parsedValue, err := strconv.ParseInt(value, 10, 64)
 			if err != nil {
 				return nil, fmt.Errorf("invalid userId: %v", err)
 			}
 			params.UserId = parsedValue
-		case "exerciseId":
+		case "eid":
 			parsedValue, err := strconv.ParseUint(value, 10, 32)
 			if err != nil {
 				return nil, fmt.Errorf("invalid exerciseId: %v", err)
 			}
 			params.ExerciseId = uint(parsedValue)
-		case "userProgramId":
+		case "upid":
 			parsedValue, err := strconv.ParseUint(value, 10, 32)
 			if err != nil {
 				return nil, fmt.Errorf("invalid userProgramId: %v", err)
 			}
 			params.UserProgramId = uint(parsedValue)
-		case "userExerciseRecordId":
+		case "uerid":
 			parsedValue, err := strconv.ParseUint(value, 10, 32)
 			if err != nil {
 				return nil, fmt.Errorf("invalid userExerciseRecordId: %v", err)
 			}
 			params.UserExerciseRecordId = uint(parsedValue)
-		case "limit":
+		case "l":
 			parsedValue, err := strconv.Atoi(value)
 			if err != nil {
 				return nil, fmt.Errorf("invalid limit: %v", err)
 			}
 			params.Limit = parsedValue
-		case "offset":
+		case "o":
 			parsedValue, err := strconv.Atoi(value)
 			if err != nil {
 				return nil, fmt.Errorf("invalid offset: %v", err)

@@ -38,6 +38,10 @@ func SelectClientProgramOptionMessage(name, programName string) string {
 	return fmt.Sprintf("Вибери одну з наступних дій для програми \"*%s*\" клієнта \"*%s*\" \\:", programName, name)
 }
 
+func ClientProgramNotAssignedMessage(name, programName string) string {
+	return fmt.Sprintf("Програма \"*%s*\" не призначена клієнту \"*%s*\"\\.", programName, name)
+}
+
 func ClientProgramAlreadyAssignedMessage(name, programName string) string {
 	return fmt.Sprintf("Програма \"*%s*\" вже призначена клієнту \"*%s*\"\\. Спробуй іншу програму\\.", programName, name)
 }
@@ -63,9 +67,31 @@ func ClientProgramResultsMessage(name, programName string, records []models.User
 
 	sb.WriteString(fmt.Sprintf("Результати програми \"*%s*\" клієнта \"*%s*\"\\:", programName, name))
 
+	groupByName := make(map[string][]models.UserExerciseRecord)
+
 	for _, record := range records {
-		sb.WriteString(fmt.Sprintf("\n\n*%s* \\(*%d* повторень\\) \\- %d", record.Name(), record.Reps, record.Weight))
+		groupByName[record.Exercise.Name] = append(groupByName[record.Exercise.Name], record)
+	}
+
+	for name, records := range groupByName {
+		sb.WriteString(fmt.Sprintf("\n\n*%s*\\:", name))
+
+		for _, record := range records {
+			sb.WriteString(fmt.Sprintf("\n %d повторень \\- %d кг", record.Reps, record.Weight))
+		}
 	}
 
 	return sb.String()
+}
+
+func ClientProgramResultsModifyMessage(name, programName string) string {
+	return fmt.Sprintf("Вибери запис для редагування результатів програми \"*%s*\" клієнта \"*%s*\"\\:", programName, name)
+}
+
+func EnterClientResultMessage(name, exerciseName string) string {
+	return fmt.Sprintf("Введи результат для вправи \"*%s*\" клієнта \"*%s*\"\\:", exerciseName, name)
+}
+
+func ClientProgramResultModifiedMessage(name, exerciseName string) string {
+	return fmt.Sprintf("Результати вправи \"*%s*\" клієнта \"*%s*\" успішно змінено\\.", exerciseName, name)
 }

@@ -20,6 +20,7 @@ type IUserProgramRepository interface {
 	Create(ctx context.Context, userProgram models.UserProgram) uint
 	GetById(ctx context.Context, id uint) *models.UserProgram
 	GetByUserIdAndProgramId(ctx context.Context, userId int64, programId uint) *models.UserProgram
+	CountAllByUserId(ctx context.Context, userId int64) int64
 	GetByUserId(ctx context.Context, userId int64, limit, offset int) []models.UserProgram
 	DeleteById(ctx context.Context, id uint)
 	DeleteByUserIdAndProgramId(ctx context.Context, userId int64, programId uint)
@@ -65,6 +66,20 @@ func (r *userProgramRepository) GetById(ctx context.Context, id uint) *models.Us
 	utils.PanicIfNotRecordNotFound(err)
 
 	return &userProgram
+}
+
+func (r *userProgramRepository) CountAllByUserId(ctx context.Context, userId int64) int64 {
+	var count int64
+
+	err := r.db.WithContext(ctx).
+		Model(&models.UserProgram{}).
+		Where("user_id = ?", userId).
+		Count(&count).
+		Error
+
+	utils.PanicIfNotContextError(err)
+
+	return count
 }
 
 func (r *userProgramRepository) GetByUserIdAndProgramId(ctx context.Context, userId int64, programId uint) *models.UserProgram {
