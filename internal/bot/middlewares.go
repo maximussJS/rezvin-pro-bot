@@ -14,13 +14,13 @@ import (
 
 func (bot *bot) answerCallbackQueryMiddleware(next tg_bot.HandlerFunc) tg_bot.HandlerFunc {
 	return func(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
-		answerResult := bot_utils.AnswerCallbackQuery(ctx, b, update)
+		answerResult := bot.senderService.AnswerCallbackQuery(ctx, b, update)
 
 		if !answerResult {
 			chatId := utils_context.GetChatIdFromContext(ctx)
 
 			bot.logger.Error(fmt.Sprintf("Failed to answer callback query: %s", update.CallbackQuery.ID))
-			bot_utils.SendMessage(ctx, b, chatId, messages.ErrorMessage())
+			bot.senderService.Send(ctx, b, chatId, messages.ErrorMessage())
 			return
 		}
 
@@ -41,14 +41,7 @@ func (bot *bot) isRegisteredMiddleware(next tg_bot.HandlerFunc) tg_bot.HandlerFu
 
 			name := fmt.Sprintf("%s %s", firstName, lastName)
 
-			bot_utils.SendMessage(ctx, b, chatId, messages.NeedRegister(name))
-			return
-		}
-
-		if user.IsNotApproved() {
-			chatId := utils_context.GetChatIdFromContext(ctx)
-
-			bot_utils.SendMessage(ctx, b, chatId, messages.UserNotApprovedMessage())
+			bot.senderService.Send(ctx, b, chatId, messages.NeedRegister(name))
 			return
 		}
 
@@ -63,7 +56,7 @@ func (bot *bot) isApprovedMiddleware(next tg_bot.HandlerFunc) tg_bot.HandlerFunc
 		if user.IsNotApproved() {
 			chatId := utils_context.GetChatIdFromContext(ctx)
 
-			bot_utils.SendMessage(ctx, b, chatId, messages.UserNotApprovedMessage())
+			bot.senderService.Send(ctx, b, chatId, messages.UserNotApprovedMessage())
 			return
 		}
 
@@ -78,7 +71,7 @@ func (bot *bot) isAdminMiddleware(next tg_bot.HandlerFunc) tg_bot.HandlerFunc {
 		if user.IsNotAdmin() {
 			chatId := utils_context.GetChatIdFromContext(ctx)
 
-			bot_utils.SendMessage(ctx, b, chatId, messages.AdminOnlyMessage())
+			bot.senderService.Send(ctx, b, chatId, messages.AdminOnlyMessage())
 			return
 		}
 
@@ -113,13 +106,13 @@ func (bot *bot) parseParamsMiddleware(next tg_bot.HandlerFunc) tg_bot.HandlerFun
 
 		if err != nil {
 			bot.logger.Error(fmt.Sprintf("Failed to parse params: %s", callbackQueryData))
-			bot_utils.SendMessage(ctx, b, chatId, messages.ParamsErrorMessage(err))
+			bot.senderService.Send(ctx, b, chatId, messages.ParamsErrorMessage(err))
 			return
 		}
 
 		if params == nil {
 			bot.logger.Error(fmt.Sprintf("Failed to parse params: %s", update.Message.Text))
-			bot_utils.SendMessage(ctx, b, chatId, messages.ErrorMessage())
+			bot.senderService.Send(ctx, b, chatId, messages.ErrorMessage())
 			return
 		}
 
@@ -138,7 +131,7 @@ func (bot *bot) validateParamsMiddleware(next tg_bot.HandlerFunc) tg_bot.Handler
 			user := bot.userRepository.GetById(ctx, params.UserId)
 
 			if user == nil {
-				bot_utils.SendMessage(ctx, b, chatId, messages.UserNotFoundMessage(params.UserId))
+				bot.senderService.Send(ctx, b, chatId, messages.UserNotFoundMessage(params.UserId))
 				return
 			}
 
@@ -149,7 +142,7 @@ func (bot *bot) validateParamsMiddleware(next tg_bot.HandlerFunc) tg_bot.Handler
 			program := bot.programRepository.GetById(ctx, params.ProgramId)
 
 			if program == nil {
-				bot_utils.SendMessage(ctx, b, chatId, messages.ProgramNotFoundMessage(params.ProgramId))
+				bot.senderService.Send(ctx, b, chatId, messages.ProgramNotFoundMessage(params.ProgramId))
 				return
 			}
 
@@ -160,7 +153,7 @@ func (bot *bot) validateParamsMiddleware(next tg_bot.HandlerFunc) tg_bot.Handler
 			exercise := bot.exerciseRepository.GetById(ctx, params.ExerciseId)
 
 			if exercise == nil {
-				bot_utils.SendMessage(ctx, b, chatId, messages.ExerciseNotFoundMessage(params.ExerciseId))
+				bot.senderService.Send(ctx, b, chatId, messages.ExerciseNotFoundMessage(params.ExerciseId))
 				return
 			}
 
@@ -171,7 +164,7 @@ func (bot *bot) validateParamsMiddleware(next tg_bot.HandlerFunc) tg_bot.Handler
 			userProgram := bot.userProgramRepository.GetById(ctx, params.UserProgramId)
 
 			if userProgram == nil {
-				bot_utils.SendMessage(ctx, b, chatId, messages.ClientProgramNotFoundMessage(params.UserProgramId))
+				bot.senderService.Send(ctx, b, chatId, messages.ClientProgramNotFoundMessage(params.UserProgramId))
 				return
 			}
 
@@ -182,7 +175,7 @@ func (bot *bot) validateParamsMiddleware(next tg_bot.HandlerFunc) tg_bot.Handler
 			record := bot.userExerciseRecordRepository.GetById(ctx, params.UserExerciseRecordId)
 
 			if record == nil {
-				bot_utils.SendMessage(ctx, b, chatId, messages.ClientExerciseRecordNotFoundMessage(params.UserExerciseRecordId))
+				bot.senderService.Send(ctx, b, chatId, messages.ClientExerciseRecordNotFoundMessage(params.UserExerciseRecordId))
 				return
 			}
 
@@ -214,7 +207,7 @@ func (bot *bot) timeoutMiddleware(next tg_bot.HandlerFunc) tg_bot.HandlerFunc {
 
 		select {
 		case <-childCtx.Done():
-			bot_utils.SendMessage(ctx, b, chatId, messages.RequestTimeoutMessage())
+			bot.senderService.Send(ctx, b, chatId, messages.RequestTimeoutMessage())
 			return
 		case <-doneCh:
 			return
@@ -280,6 +273,12 @@ func (bot *bot) mainMiddlewares() []tg_bot.Middleware {
 }
 
 func (bot *bot) commandMiddlewares() []tg_bot.Middleware {
+	return []tg_bot.Middleware{
+		bot.timeoutMiddleware,
+	}
+}
+
+func (bot *bot) registerMiddlewares() []tg_bot.Middleware {
 	return []tg_bot.Middleware{
 		bot.timeoutMiddleware,
 	}

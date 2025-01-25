@@ -8,7 +8,7 @@ import (
 	"rezvin-pro-bot/constants/callback_data"
 	"rezvin-pro-bot/internal/logger"
 	"rezvin-pro-bot/repositories"
-	bot_utils "rezvin-pro-bot/utils/bot"
+	"rezvin-pro-bot/services"
 	utils_context "rezvin-pro-bot/utils/context"
 	"rezvin-pro-bot/utils/inline_keyboards"
 	"rezvin-pro-bot/utils/messages"
@@ -24,12 +24,15 @@ type backHandlerDependencies struct {
 
 	Logger logger.ILogger `name:"Logger"`
 
+	SenderService services.ISenderService `name:"SenderService"`
+
 	UserRepository    repositories.IUserRepository    `name:"UserRepository"`
 	ProgramRepository repositories.IProgramRepository `name:"ProgramRepository"`
 }
 
 type backHandler struct {
 	logger            logger.ILogger
+	senderService     services.ISenderService
 	userRepository    repositories.IUserRepository
 	programRepository repositories.IProgramRepository
 }
@@ -37,6 +40,7 @@ type backHandler struct {
 func NewBackHandler(deps backHandlerDependencies) *backHandler {
 	return &backHandler{
 		logger:            deps.Logger,
+		senderService:     deps.SenderService,
 		userRepository:    deps.UserRepository,
 		programRepository: deps.ProgramRepository,
 	}
@@ -71,7 +75,7 @@ func (h *backHandler) backToProgramMenu(ctx context.Context, b *tg_bot.Bot) {
 
 	kb := inline_keyboards.ProgramMenu()
 
-	bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, messages.ProgramMenuMessage(), kb)
+	h.senderService.SendWithKb(ctx, b, chatId, messages.ProgramMenuMessage(), kb)
 }
 
 func (h *backHandler) backToProgramList(ctx context.Context, b *tg_bot.Bot) {
@@ -82,7 +86,7 @@ func (h *backHandler) backToProgramList(ctx context.Context, b *tg_bot.Bot) {
 	programs := h.programRepository.GetAll(ctx, limit, offset)
 
 	if len(programs) == 0 {
-		bot_utils.SendMessage(ctx, b, chatId, messages.NoProgramsMessage())
+		h.senderService.Send(ctx, b, chatId, messages.NoProgramsMessage())
 		return
 	}
 
@@ -90,7 +94,7 @@ func (h *backHandler) backToProgramList(ctx context.Context, b *tg_bot.Bot) {
 
 	kb := inline_keyboards.ProgramList(programs, programsCount, limit, offset)
 
-	bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, messages.SelectProgramMessage(), kb)
+	h.senderService.SendWithKb(ctx, b, chatId, messages.SelectProgramMessage(), kb)
 }
 
 func (h *backHandler) backToPendingUsersList(ctx context.Context, b *tg_bot.Bot) {
@@ -101,7 +105,7 @@ func (h *backHandler) backToPendingUsersList(ctx context.Context, b *tg_bot.Bot)
 	users := h.userRepository.GetPendingUsers(ctx, limit, offset)
 
 	if len(users) == 0 {
-		bot_utils.SendMessage(ctx, b, chatId, messages.NoPendingUsersMessage())
+		h.senderService.Send(ctx, b, chatId, messages.NoPendingUsersMessage())
 		return
 	}
 
@@ -109,7 +113,7 @@ func (h *backHandler) backToPendingUsersList(ctx context.Context, b *tg_bot.Bot)
 
 	kb := inline_keyboards.PendingUsersList(users, usersCount, limit, offset)
 
-	bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, messages.SelectPendingUserMessage(), kb)
+	h.senderService.SendWithKb(ctx, b, chatId, messages.SelectPendingUserMessage(), kb)
 }
 
 func (h *backHandler) backToClientList(ctx context.Context, b *tg_bot.Bot) {
@@ -120,7 +124,7 @@ func (h *backHandler) backToClientList(ctx context.Context, b *tg_bot.Bot) {
 	clients := h.userRepository.GetClients(ctx, limit, offset)
 
 	if len(clients) == 0 {
-		bot_utils.SendMessage(ctx, b, chatId, messages.NoClientsMessage())
+		h.senderService.Send(ctx, b, chatId, messages.NoClientsMessage())
 		return
 	}
 
@@ -128,5 +132,5 @@ func (h *backHandler) backToClientList(ctx context.Context, b *tg_bot.Bot) {
 
 	kb := inline_keyboards.ClientList(clients, clientsCount, limit, offset)
 
-	bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, messages.SelectClientMessage(), kb)
+	h.senderService.SendWithKb(ctx, b, chatId, messages.SelectClientMessage(), kb)
 }

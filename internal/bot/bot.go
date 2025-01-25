@@ -11,6 +11,7 @@ import (
 	"rezvin-pro-bot/handlers/callback_queries"
 	"rezvin-pro-bot/internal/logger"
 	"rezvin-pro-bot/repositories"
+	"rezvin-pro-bot/services"
 	"rezvin-pro-bot/utils"
 	"sync"
 )
@@ -26,6 +27,8 @@ type botDependencies struct {
 	ShutdownContext   context.Context `name:"ShutdownContext"`
 	Logger            logger.ILogger  `name:"Logger"`
 	Config            config.IConfig  `name:"Config"`
+
+	SenderService services.ISenderService `name:"SenderService"`
 
 	DefaultHandler      handlers.IDefaultHandler              `name:"DefaultHandler"`
 	CommandsHandler     handlers.ICommandHandler              `name:"CommandHandler"`
@@ -54,6 +57,8 @@ type bot struct {
 
 	bot *tg_bot.Bot
 
+	senderService services.ISenderService
+
 	commandsHandler     handlers.ICommandHandler
 	defaultHandler      handlers.IDefaultHandler
 	registerHandler     callback_queries.IRegisterHandler
@@ -78,6 +83,7 @@ func NewBot(deps botDependencies) *bot {
 		shutdownContext:              deps.ShutdownContext,
 		logger:                       deps.Logger,
 		config:                       deps.Config,
+		senderService:                deps.SenderService,
 		commandsHandler:              deps.CommandsHandler,
 		defaultHandler:               deps.DefaultHandler,
 		programHandler:               deps.ProgramHandler,
@@ -157,7 +163,7 @@ func (bot *bot) registerHandlers() {
 
 	bot.registerCallbackQueryByPrefix(callback_data.MainPrefix, bot.mainHandler.Handle, bot.mainMiddlewares())
 
-	bot.registerCallbackQueryByPrefix(callback_data.RegisterPrefix, bot.registerHandler.Handle, bot.userMiddlewares())
+	bot.registerCallbackQueryByPrefix(callback_data.RegisterPrefix, bot.registerHandler.Handle, bot.registerMiddlewares())
 	bot.registerCallbackQueryByPrefix(callback_data.UserPrefix, bot.userHandler.Handle, bot.userMiddlewares())
 
 	bot.registerCallbackQueryByPrefix(callback_data.ProgramPrefix, bot.programHandler.Handle, bot.adminMiddlewares())

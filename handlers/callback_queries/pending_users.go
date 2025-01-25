@@ -10,7 +10,6 @@ import (
 	"rezvin-pro-bot/models"
 	"rezvin-pro-bot/repositories"
 	"rezvin-pro-bot/services"
-	bot_utils "rezvin-pro-bot/utils/bot"
 	utils_context "rezvin-pro-bot/utils/context"
 	"rezvin-pro-bot/utils/inline_keyboards"
 	"rezvin-pro-bot/utils/messages"
@@ -26,18 +25,21 @@ type pendingUsersHandlerDependencies struct {
 
 	Logger              logger.ILogger                `name:"Logger"`
 	ConversationService services.IConversationService `name:"ConversationService"`
+	SenderService       services.ISenderService       `name:"SenderService"`
 	UserRepository      repositories.IUserRepository  `name:"UserRepository"`
 }
 
 type pendingUsersHandler struct {
 	logger              logger.ILogger
 	conversationService services.IConversationService
+	senderService       services.ISenderService
 	userRepository      repositories.IUserRepository
 }
 
 func NewPendingUsersHandler(deps pendingUsersHandlerDependencies) *pendingUsersHandler {
 	return &pendingUsersHandler{
 		logger:              deps.Logger,
+		senderService:       deps.SenderService,
 		conversationService: deps.ConversationService,
 		userRepository:      deps.UserRepository,
 	}
@@ -75,7 +77,7 @@ func (h *pendingUsersHandler) list(ctx context.Context, b *tg_bot.Bot) {
 	users := h.userRepository.GetPendingUsers(ctx, limit, offset)
 
 	if len(users) == 0 {
-		bot_utils.SendMessage(ctx, b, chatId, messages.NoPendingUsersMessage())
+		h.senderService.SendSafe(ctx, b, chatId, messages.NoPendingUsersMessage())
 		return
 	}
 
@@ -83,7 +85,7 @@ func (h *pendingUsersHandler) list(ctx context.Context, b *tg_bot.Bot) {
 
 	kb := inline_keyboards.PendingUsersList(users, usersCount, limit, offset)
 
-	bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, messages.SelectPendingUserMessage(), kb)
+	h.senderService.SendSafeWithKb(ctx, b, chatId, messages.SelectPendingUserMessage(), kb)
 }
 
 func (h *pendingUsersHandler) selected(ctx context.Context, b *tg_bot.Bot) {
@@ -93,7 +95,7 @@ func (h *pendingUsersHandler) selected(ctx context.Context, b *tg_bot.Bot) {
 	msg := messages.SelectPendingUserOptionMessage(user.GetPrivateName())
 	kb := inline_keyboards.PendingUserDecide(*user)
 
-	bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, msg, kb)
+	h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 }
 
 func (h *pendingUsersHandler) approve(ctx context.Context, b *tg_bot.Bot) {
@@ -105,8 +107,8 @@ func (h *pendingUsersHandler) approve(ctx context.Context, b *tg_bot.Bot) {
 		IsDeclined: false,
 	})
 
-	bot_utils.SendMessage(ctx, b, chatId, messages.UserApprovedMessage(user.GetPublicName()))
-	bot_utils.SendMessage(ctx, b, chatId, messages.UserApprovedForAdminMessage(user.GetPrivateName()))
+	h.senderService.SendSafe(ctx, b, user.ChatId, messages.UserApprovedMessage(user.GetPublicName()))
+	h.senderService.SendSafe(ctx, b, chatId, messages.UserApprovedForAdminMessage(user.GetPrivateName()))
 }
 
 func (h *pendingUsersHandler) decline(ctx context.Context, b *tg_bot.Bot) {
@@ -118,6 +120,6 @@ func (h *pendingUsersHandler) decline(ctx context.Context, b *tg_bot.Bot) {
 		IsApproved: false,
 	})
 
-	bot_utils.SendMessage(ctx, b, chatId, messages.UserDeclinedMessage(user.GetPublicName()))
-	bot_utils.SendMessage(ctx, b, chatId, messages.UserDeclinedForAdminMessage(user.GetPrivateName()))
+	h.senderService.Send(ctx, b, user.ChatId, messages.UserDeclinedMessage(user.GetPublicName()))
+	h.senderService.Send(ctx, b, chatId, messages.UserDeclinedForAdminMessage(user.GetPrivateName()))
 }

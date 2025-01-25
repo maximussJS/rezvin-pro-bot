@@ -10,6 +10,7 @@ import (
 	"rezvin-pro-bot/internal/logger"
 	"rezvin-pro-bot/models"
 	"rezvin-pro-bot/repositories"
+	"rezvin-pro-bot/services"
 	bot_utils "rezvin-pro-bot/utils/bot"
 	utils_context "rezvin-pro-bot/utils/context"
 	"rezvin-pro-bot/utils/messages"
@@ -22,18 +23,22 @@ type IRegisterHandler interface {
 type registerHandlerDependencies struct {
 	dig.In
 
+	SenderService services.ISenderService `name:"SenderService"`
+
 	Logger         logger.ILogger               `name:"Logger"`
 	UserRepository repositories.IUserRepository `name:"UserRepository"`
 }
 
 type registerHandler struct {
 	logger         logger.ILogger
+	senderService  services.ISenderService
 	userRepository repositories.IUserRepository
 }
 
 func NewRegisterHandler(deps registerHandlerDependencies) *registerHandler {
 	return &registerHandler{
 		logger:         deps.Logger,
+		senderService:  deps.SenderService,
 		userRepository: deps.UserRepository,
 	}
 }
@@ -56,9 +61,9 @@ func (h *registerHandler) registerUser(ctx context.Context, b *tg_bot.Bot, updat
 
 	if user != nil {
 		if user.IsApproved {
-			bot_utils.SendMessage(ctx, b, chatId, messages.AlreadyApprovedRegister())
+			h.senderService.Send(ctx, b, chatId, messages.AlreadyApprovedRegister())
 		} else {
-			bot_utils.SendMessage(ctx, b, chatId, messages.AlreadyRegistered())
+			h.senderService.Send(ctx, b, chatId, messages.AlreadyRegistered())
 		}
 		return
 	}
@@ -74,13 +79,13 @@ func (h *registerHandler) registerUser(ctx context.Context, b *tg_bot.Bot, updat
 		IsDeclined: false,
 	})
 
-	bot_utils.SendMessage(ctx, b, chatId, messages.SuccessRegister())
+	h.senderService.Send(ctx, b, chatId, messages.SuccessRegister())
 
 	admins := h.userRepository.GetAdminUsers(ctx)
 
 	name := fmt.Sprintf("%s %s", firstName, lastName)
 
 	for _, admin := range admins {
-		bot_utils.SendMessage(ctx, b, admin.ChatId, messages.NewRegister(name))
+		h.senderService.Send(ctx, b, admin.ChatId, messages.NewRegister(name))
 	}
 }

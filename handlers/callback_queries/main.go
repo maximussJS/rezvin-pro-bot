@@ -9,6 +9,7 @@ import (
 	"rezvin-pro-bot/constants/callback_data"
 	"rezvin-pro-bot/internal/logger"
 	"rezvin-pro-bot/repositories"
+	"rezvin-pro-bot/services"
 	bot_utils "rezvin-pro-bot/utils/bot"
 	utils_context "rezvin-pro-bot/utils/context"
 	"rezvin-pro-bot/utils/inline_keyboards"
@@ -23,19 +24,22 @@ type IMainHandler interface {
 type mainHandlerDependencies struct {
 	dig.In
 
-	Logger logger.ILogger `name:"Logger"`
+	Logger        logger.ILogger          `name:"Logger"`
+	SenderService services.ISenderService `name:"SenderService"`
 
 	UserRepository repositories.IUserRepository `name:"UserRepository"`
 }
 
 type mainHandler struct {
 	logger         logger.ILogger
+	senderService  services.ISenderService
 	userRepository repositories.IUserRepository
 }
 
 func NewMainHandler(deps mainHandlerDependencies) *mainHandler {
 	return &mainHandler{
 		logger:         deps.Logger,
+		senderService:  deps.SenderService,
 		userRepository: deps.UserRepository,
 	}
 }
@@ -67,22 +71,22 @@ func (h *mainHandler) backToMain(ctx context.Context, b *tg_bot.Bot, update *tg_
 		name := fmt.Sprintf("%s %s", firstName, lastName)
 
 		kb := inline_keyboards.UserRegister()
-		bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, messages.NeedRegister(name), kb)
+		h.senderService.SendWithKb(ctx, b, chatId, messages.NeedRegister(name), kb)
 		return
 	}
 
 	if user.IsAdmin {
 		kb := inline_keyboards.AdminMain()
-		bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, messages.AdminMainMessage(), kb)
+		h.senderService.SendWithKb(ctx, b, chatId, messages.AdminMainMessage(), kb)
 	} else {
 		if user.IsApproved {
 			msg := messages.UserMenuMessage(user.GetPublicName())
-			bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, msg, inline_keyboards.UserMenu())
+			h.senderService.SendWithKb(ctx, b, chatId, msg, inline_keyboards.UserMenu())
 		} else {
 			if user.IsDeclined {
-				bot_utils.SendMessage(ctx, b, chatId, messages.UserDeclinedMessage(user.GetPublicName()))
+				h.senderService.Send(ctx, b, chatId, messages.UserDeclinedMessage(user.GetPublicName()))
 			} else {
-				bot_utils.SendMessage(ctx, b, chatId, messages.AlreadyRegistered())
+				h.senderService.Send(ctx, b, chatId, messages.AlreadyRegistered())
 			}
 		}
 	}
@@ -91,5 +95,5 @@ func (h *mainHandler) backToMain(ctx context.Context, b *tg_bot.Bot, update *tg_
 func (h *mainHandler) backToStart(ctx context.Context, b *tg_bot.Bot) {
 	chatId := utils_context.GetChatIdFromContext(ctx)
 
-	bot_utils.SendMessage(ctx, b, chatId, messages.PressStartMessage())
+	h.senderService.Send(ctx, b, chatId, messages.PressStartMessage())
 }

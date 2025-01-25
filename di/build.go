@@ -97,6 +97,11 @@ func getRepositoriesDependencies() []Dependency {
 			Interface:   new(repositories.IUserExerciseRecordRepository),
 			Token:       "UserExerciseRecordRepository",
 		},
+		{
+			Constructor: repositories.NewLastUserMessageRepository,
+			Interface:   new(repositories.ILastUserMessageRepository),
+			Token:       "LastUserMessageRepository",
+		},
 	}
 }
 
@@ -106,6 +111,11 @@ func getServicesDependencies() []Dependency {
 			Constructor: services.NewConversationService,
 			Interface:   new(services.IConversationService),
 			Token:       "ConversationService",
+		},
+		{
+			Constructor: services.NewSenderService,
+			Interface:   new(services.ISenderService),
+			Token:       "SenderService",
 		},
 	}
 }

@@ -11,7 +11,6 @@ import (
 	"rezvin-pro-bot/models"
 	"rezvin-pro-bot/repositories"
 	"rezvin-pro-bot/services"
-	bot_utils "rezvin-pro-bot/utils/bot"
 	utils_context "rezvin-pro-bot/utils/context"
 	"rezvin-pro-bot/utils/inline_keyboards"
 	"rezvin-pro-bot/utils/messages"
@@ -26,8 +25,10 @@ type IUserHandler interface {
 type userHandlerDependencies struct {
 	dig.In
 
-	Logger                       logger.ILogger                             `name:"Logger"`
-	ConversationService          services.IConversationService              `name:"ConversationService"`
+	Logger              logger.ILogger                `name:"Logger"`
+	ConversationService services.IConversationService `name:"ConversationService"`
+	SenderService       services.ISenderService       `name:"SenderService"`
+
 	UserRepository               repositories.IUserRepository               `name:"UserRepository"`
 	UserProgramRepository        repositories.IUserProgramRepository        `name:"UserProgramRepository"`
 	UserExerciseRecordRepository repositories.IUserExerciseRecordRepository `name:"UserExerciseRecordRepository"`
@@ -36,6 +37,7 @@ type userHandlerDependencies struct {
 type userHandler struct {
 	logger                       logger.ILogger
 	conversationService          services.IConversationService
+	senderService                services.ISenderService
 	userRepository               repositories.IUserRepository
 	userProgramRepository        repositories.IUserProgramRepository
 	userExerciseRecordRepository repositories.IUserExerciseRecordRepository
@@ -44,6 +46,7 @@ type userHandler struct {
 func NewUserHandler(deps userHandlerDependencies) *userHandler {
 	return &userHandler{
 		logger:                       deps.Logger,
+		senderService:                deps.SenderService,
 		conversationService:          deps.ConversationService,
 		userRepository:               deps.UserRepository,
 		userProgramRepository:        deps.UserProgramRepository,
@@ -89,7 +92,7 @@ func (h *userHandler) programList(ctx context.Context, b *tg_bot.Bot) {
 	programs := h.userProgramRepository.GetByUserId(ctx, user.Id, limit, offset)
 
 	if len(programs) == 0 {
-		bot_utils.SendMessage(ctx, b, chatId, messages.NoUserProgramsMessage())
+		h.senderService.Send(ctx, b, chatId, messages.NoUserProgramsMessage())
 		return
 	}
 
@@ -99,7 +102,7 @@ func (h *userHandler) programList(ctx context.Context, b *tg_bot.Bot) {
 
 	kb := inline_keyboards.UserProgramList(programs, programsCount, limit, offset)
 
-	bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, msg, kb)
+	h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 }
 
 func (h *userHandler) programSelected(ctx context.Context, b *tg_bot.Bot) {
@@ -109,14 +112,14 @@ func (h *userHandler) programSelected(ctx context.Context, b *tg_bot.Bot) {
 
 	if userProgram.UserId != user.Id {
 		h.logger.Error(fmt.Sprintf("Program %d is not assigned for user %d", userProgram.Id, user.Id))
-		bot_utils.SendMessage(ctx, b, chatId, messages.UserProgramNotAssignedMessage(userProgram.Name()))
+		h.senderService.Send(ctx, b, chatId, messages.UserProgramNotAssignedMessage(userProgram.Name()))
 		return
 	}
 
 	msg := messages.SelectUserProgramOptionMessage(userProgram.Name())
 	kb := inline_keyboards.UserProgramMenu(*userProgram)
 
-	bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, msg, kb)
+	h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 }
 
 func (h *userHandler) resultList(ctx context.Context, b *tg_bot.Bot) {
@@ -126,7 +129,7 @@ func (h *userHandler) resultList(ctx context.Context, b *tg_bot.Bot) {
 
 	if userProgram.UserId != user.Id {
 		h.logger.Error(fmt.Sprintf("Program %d is not assigned for user %d", userProgram.Id, user.Id))
-		bot_utils.SendMessage(ctx, b, chatId, messages.UserProgramNotAssignedMessage(userProgram.Name()))
+		h.senderService.Send(ctx, b, chatId, messages.UserProgramNotAssignedMessage(userProgram.Name()))
 		return
 	}
 
@@ -134,15 +137,13 @@ func (h *userHandler) resultList(ctx context.Context, b *tg_bot.Bot) {
 
 	if len(records) == 0 {
 		msg := messages.NoRecordsForUserProgramMessage(userProgram.Name())
-		bot_utils.SendMessage(ctx, b, chatId, msg)
+		h.senderService.Send(ctx, b, chatId, msg)
 		return
 	}
 
 	msg := messages.UserProgramResultsMessage(userProgram.Name(), records)
 
-	bot_utils.SendMessage(ctx, b, chatId, msg)
-
-	h.programSelected(ctx, b)
+	h.senderService.Send(ctx, b, chatId, msg)
 }
 
 func (h *userHandler) resultModifyList(ctx context.Context, b *tg_bot.Bot) {
@@ -154,7 +155,7 @@ func (h *userHandler) resultModifyList(ctx context.Context, b *tg_bot.Bot) {
 
 	if userProgram.UserId != user.Id {
 		h.logger.Error(fmt.Sprintf("Program %d is not assigned for user %d", userProgram.Id, user.Id))
-		bot_utils.SendMessage(ctx, b, chatId, messages.UserProgramNotAssignedMessage(userProgram.Name()))
+		h.senderService.Send(ctx, b, chatId, messages.UserProgramNotAssignedMessage(userProgram.Name()))
 		return
 	}
 
@@ -162,7 +163,7 @@ func (h *userHandler) resultModifyList(ctx context.Context, b *tg_bot.Bot) {
 
 	if len(records) == 0 {
 		msg := messages.NoRecordsForUserProgramMessage(userProgram.Name())
-		bot_utils.SendMessage(ctx, b, chatId, msg)
+		h.senderService.Send(ctx, b, chatId, msg)
 		return
 	}
 
@@ -172,7 +173,7 @@ func (h *userHandler) resultModifyList(ctx context.Context, b *tg_bot.Bot) {
 
 	kb := inline_keyboards.UserProgramResultsModifyList(records, recordsCount, limit, offset)
 
-	bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, msg, kb)
+	h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 }
 
 func (h *userHandler) getWeight(ctx context.Context, b *tg_bot.Bot) int {
@@ -186,7 +187,7 @@ func (h *userHandler) getWeight(ctx context.Context, b *tg_bot.Bot) int {
 	weight, err := validate_data.ValidateWeightAnswer(answer)
 
 	if err != nil {
-		bot_utils.SendMessage(ctx, b, chatId, err.Error())
+		h.senderService.Send(ctx, b, chatId, err.Error())
 		return h.getWeight(ctx, b)
 	}
 
@@ -197,7 +198,7 @@ func (h *userHandler) resultModifySelected(ctx context.Context, b *tg_bot.Bot) {
 	chatId := utils_context.GetChatIdFromContext(ctx)
 	record := utils_context.GetUserExerciseRecordFromContext(ctx)
 
-	bot_utils.SendMessage(ctx, b, chatId, messages.EnterUserResultMessage(record.Name()))
+	h.senderService.Send(ctx, b, chatId, messages.EnterUserResultMessage(record.Name()))
 
 	weight := h.getWeight(ctx, b)
 
@@ -207,7 +208,5 @@ func (h *userHandler) resultModifySelected(ctx context.Context, b *tg_bot.Bot) {
 
 	msg := messages.UserProgramResultModifiedMessage(record.Name())
 
-	bot_utils.SendMessage(ctx, b, chatId, msg)
-
-	h.programSelected(ctx, b)
+	h.senderService.Send(ctx, b, chatId, msg)
 }

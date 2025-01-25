@@ -10,7 +10,6 @@ import (
 	"rezvin-pro-bot/models"
 	"rezvin-pro-bot/repositories"
 	"rezvin-pro-bot/services"
-	bot_utils "rezvin-pro-bot/utils/bot"
 	utils_context "rezvin-pro-bot/utils/context"
 	"rezvin-pro-bot/utils/inline_keyboards"
 	"rezvin-pro-bot/utils/messages"
@@ -26,6 +25,7 @@ type programHandlerDependencies struct {
 
 	Logger              logger.ILogger                `name:"Logger"`
 	ConversationService services.IConversationService `name:"ConversationService"`
+	SenderService       services.ISenderService       `name:"SenderService"`
 
 	ProgramRepository repositories.IProgramRepository `name:"ProgramRepository"`
 }
@@ -33,12 +33,14 @@ type programHandlerDependencies struct {
 type programHandler struct {
 	logger              logger.ILogger
 	conversationService services.IConversationService
+	senderService       services.ISenderService
 	programRepository   repositories.IProgramRepository
 }
 
 func NewProgramHandler(deps programHandlerDependencies) *programHandler {
 	return &programHandler{
 		logger:              deps.Logger,
+		senderService:       deps.SenderService,
 		conversationService: deps.ConversationService,
 		programRepository:   deps.ProgramRepository,
 	}
@@ -80,7 +82,7 @@ func (h *programHandler) menu(ctx context.Context, b *tg_bot.Bot) {
 
 	msg := messages.ProgramMenuMessage()
 
-	bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, msg, inline_keyboards.ProgramMenu())
+	h.senderService.SendWithKb(ctx, b, chatId, msg, inline_keyboards.ProgramMenu())
 }
 
 func (h *programHandler) add(ctx context.Context, b *tg_bot.Bot) {
@@ -89,14 +91,14 @@ func (h *programHandler) add(ctx context.Context, b *tg_bot.Bot) {
 	conversation := h.conversationService.CreateConversation(chatId)
 	defer h.conversationService.DeleteConversation(chatId)
 
-	bot_utils.SendMessage(ctx, b, chatId, messages.EnterProgramNameMessage())
+	h.senderService.Send(ctx, b, chatId, messages.EnterProgramNameMessage())
 
 	programName := conversation.WaitAnswer()
 
 	existingProgram := h.programRepository.GetByName(ctx, programName)
 
 	if existingProgram != nil {
-		bot_utils.SendMessage(ctx, b, chatId, messages.ProgramNameAlreadyExistsMessage(programName))
+		h.senderService.Send(ctx, b, chatId, messages.ProgramNameAlreadyExistsMessage(programName))
 		return
 	}
 
@@ -104,7 +106,7 @@ func (h *programHandler) add(ctx context.Context, b *tg_bot.Bot) {
 		Name: programName,
 	})
 
-	bot_utils.SendMessage(ctx, b, chatId, messages.ProgramSuccessfullyAddedMessage(programName))
+	h.senderService.Send(ctx, b, chatId, messages.ProgramSuccessfullyAddedMessage(programName))
 }
 
 func (h *programHandler) list(ctx context.Context, b *tg_bot.Bot) {
@@ -115,7 +117,7 @@ func (h *programHandler) list(ctx context.Context, b *tg_bot.Bot) {
 	programs := h.programRepository.GetAll(ctx, limit, offset)
 
 	if len(programs) == 0 {
-		bot_utils.SendMessage(ctx, b, chatId, messages.NoProgramsMessage())
+		h.senderService.Send(ctx, b, chatId, messages.NoProgramsMessage())
 		return
 	}
 
@@ -123,7 +125,7 @@ func (h *programHandler) list(ctx context.Context, b *tg_bot.Bot) {
 
 	kb := inline_keyboards.ProgramList(programs, programsCount, limit, offset)
 
-	bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, messages.SelectProgramMessage(), kb)
+	h.senderService.SendWithKb(ctx, b, chatId, messages.SelectProgramMessage(), kb)
 }
 
 func (h *programHandler) selected(ctx context.Context, b *tg_bot.Bot) {
@@ -133,7 +135,7 @@ func (h *programHandler) selected(ctx context.Context, b *tg_bot.Bot) {
 	msg := messages.SelectProgramOptionMessage(program.Name)
 	kb := inline_keyboards.ProgramSelectedMenu(program.Id)
 
-	bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, msg, kb)
+	h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 }
 
 func (h *programHandler) rename(ctx context.Context, b *tg_bot.Bot) {
@@ -143,14 +145,14 @@ func (h *programHandler) rename(ctx context.Context, b *tg_bot.Bot) {
 	conversation := h.conversationService.CreateConversation(chatId)
 	defer h.conversationService.DeleteConversation(chatId)
 
-	bot_utils.SendMessage(ctx, b, chatId, messages.EnterProgramNameMessage())
+	h.senderService.Send(ctx, b, chatId, messages.EnterProgramNameMessage())
 
 	programName := conversation.WaitAnswer()
 
 	existingProgram := h.programRepository.GetByName(ctx, programName)
 
 	if existingProgram != nil {
-		bot_utils.SendMessage(ctx, b, chatId, messages.ProgramNameAlreadyExistsMessage(programName))
+		h.senderService.Send(ctx, b, chatId, messages.ProgramNameAlreadyExistsMessage(programName))
 		return
 	}
 
@@ -158,7 +160,7 @@ func (h *programHandler) rename(ctx context.Context, b *tg_bot.Bot) {
 		Name: programName,
 	})
 
-	bot_utils.SendMessage(ctx, b, chatId, messages.ProgramSuccessfullyRenamedMessage(program.Name, programName))
+	h.senderService.Send(ctx, b, chatId, messages.ProgramSuccessfullyRenamedMessage(program.Name, programName))
 }
 
 func (h *programHandler) delete(ctx context.Context, b *tg_bot.Bot) {
@@ -167,5 +169,5 @@ func (h *programHandler) delete(ctx context.Context, b *tg_bot.Bot) {
 
 	h.programRepository.DeleteById(ctx, program.Id)
 
-	bot_utils.SendMessage(ctx, b, chatId, messages.ProgramSuccessfullyDeletedMessage(program.Name))
+	h.senderService.Send(ctx, b, chatId, messages.ProgramSuccessfullyDeletedMessage(program.Name))
 }

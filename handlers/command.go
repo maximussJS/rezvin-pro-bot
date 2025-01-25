@@ -7,6 +7,7 @@ import (
 	"github.com/go-telegram/bot/models"
 	"go.uber.org/dig"
 	"rezvin-pro-bot/repositories"
+	"rezvin-pro-bot/services"
 	bot_utils "rezvin-pro-bot/utils/bot"
 	utils_context "rezvin-pro-bot/utils/context"
 	"rezvin-pro-bot/utils/inline_keyboards"
@@ -20,15 +21,19 @@ type ICommandHandler interface {
 type commandHandlerDependencies struct {
 	dig.In
 
+	SenderService services.ISenderService `name:"SenderService"`
+
 	UserRepository repositories.IUserRepository `name:"UserRepository"`
 }
 
 type commandHandler struct {
+	senderService  services.ISenderService
 	userRepository repositories.IUserRepository
 }
 
 func NewCommandHandler(deps commandHandlerDependencies) *commandHandler {
 	return &commandHandler{
+		senderService:  deps.SenderService,
 		userRepository: deps.UserRepository,
 	}
 }
@@ -45,22 +50,22 @@ func (c *commandHandler) Start(ctx context.Context, b *tg_bot.Bot, update *model
 
 	if user == nil {
 		kb := inline_keyboards.UserRegister()
-		bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, messages.NeedRegister(name), kb)
+		c.senderService.SendWithKb(ctx, b, chatId, messages.NeedRegister(name), kb)
 		return
 	}
 
 	if user.IsAdmin {
 		kb := inline_keyboards.AdminMain()
-		bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, messages.AdminMainMessage(), kb)
+		c.senderService.SendWithKb(ctx, b, chatId, messages.AdminMainMessage(), kb)
 	} else {
 		if user.IsApproved {
 			msg := messages.UserMenuMessage(user.GetPublicName())
-			bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, msg, inline_keyboards.UserMenu())
+			c.senderService.SendWithKb(ctx, b, chatId, msg, inline_keyboards.UserMenu())
 		} else {
 			if user.IsDeclined {
-				bot_utils.SendMessage(ctx, b, chatId, messages.UserDeclinedMessage(name))
+				c.senderService.Send(ctx, b, chatId, messages.UserDeclinedMessage(name))
 			} else {
-				bot_utils.SendMessage(ctx, b, chatId, messages.AlreadyRegistered())
+				c.senderService.Send(ctx, b, chatId, messages.AlreadyRegistered())
 			}
 		}
 	}

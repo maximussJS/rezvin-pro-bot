@@ -10,7 +10,6 @@ import (
 	"rezvin-pro-bot/models"
 	"rezvin-pro-bot/repositories"
 	"rezvin-pro-bot/services"
-	bot_utils "rezvin-pro-bot/utils/bot"
 	utils_context "rezvin-pro-bot/utils/context"
 	"rezvin-pro-bot/utils/inline_keyboards"
 	"rezvin-pro-bot/utils/messages"
@@ -26,6 +25,7 @@ type exerciseHandlerDependencies struct {
 
 	Logger              logger.ILogger                `name:"Logger"`
 	ConversationService services.IConversationService `name:"ConversationService"`
+	SenderService       services.ISenderService       `name:"SenderService"`
 
 	ProgramRepository  repositories.IProgramRepository  `name:"ProgramRepository"`
 	ExerciseRepository repositories.IExerciseRepository `name:"ExerciseRepository"`
@@ -34,6 +34,7 @@ type exerciseHandlerDependencies struct {
 type exerciseHandler struct {
 	logger              logger.ILogger
 	conversationService services.IConversationService
+	senderService       services.ISenderService
 	programRepository   repositories.IProgramRepository
 	exerciseRepository  repositories.IExerciseRepository
 }
@@ -42,6 +43,7 @@ func NewExerciseHandler(deps exerciseHandlerDependencies) *exerciseHandler {
 	return &exerciseHandler{
 		logger:              deps.Logger,
 		conversationService: deps.ConversationService,
+		senderService:       deps.SenderService,
 		programRepository:   deps.ProgramRepository,
 		exerciseRepository:  deps.ExerciseRepository,
 	}
@@ -78,14 +80,14 @@ func (h *exerciseHandler) add(ctx context.Context, b *tg_bot.Bot) {
 	conversation := h.conversationService.CreateConversation(chatId)
 	defer h.conversationService.DeleteConversation(chatId)
 
-	bot_utils.SendMessage(ctx, b, chatId, messages.EnterExerciseNameMessage())
+	h.senderService.Send(ctx, b, chatId, messages.EnterExerciseNameMessage())
 
 	exerciseName := conversation.WaitAnswer()
 
 	existingExercise := h.exerciseRepository.GetByNameAndProgramId(ctx, exerciseName, program.Id)
 
 	if existingExercise != nil {
-		bot_utils.SendMessage(ctx, b, chatId, messages.ExerciseNameAlreadyExistsMessage(exerciseName))
+		h.senderService.Send(ctx, b, chatId, messages.ExerciseNameAlreadyExistsMessage(exerciseName))
 		return
 	}
 
@@ -94,7 +96,7 @@ func (h *exerciseHandler) add(ctx context.Context, b *tg_bot.Bot) {
 		ProgramId: program.Id,
 	})
 
-	bot_utils.SendMessage(ctx, b, chatId, messages.ExerciseSuccessfullyAddedMessage(exerciseName, program.Name))
+	h.senderService.Send(ctx, b, chatId, messages.ExerciseSuccessfullyAddedMessage(exerciseName, program.Name))
 
 	h.backToSelectedProgram(ctx, b, program)
 }
@@ -104,11 +106,11 @@ func (h *exerciseHandler) list(ctx context.Context, b *tg_bot.Bot) {
 	program := utils_context.GetProgramFromContext(ctx)
 
 	if len(program.Exercises) == 0 {
-		bot_utils.SendMessage(ctx, b, chatId, messages.NoExercisesMessage(program.Name))
+		h.senderService.Send(ctx, b, chatId, messages.NoExercisesMessage(program.Name))
 		return
 	}
 
-	bot_utils.SendMessage(ctx, b, chatId, messages.ExercisesMessage(program.Name, program.Exercises))
+	h.senderService.Send(ctx, b, chatId, messages.ExercisesMessage(program.Name, program.Exercises))
 
 	h.backToSelectedProgram(ctx, b, program)
 }
@@ -122,7 +124,7 @@ func (h *exerciseHandler) delete(ctx context.Context, b *tg_bot.Bot) {
 	exercises := h.exerciseRepository.GetByProgramId(ctx, program.Id, limit, offset)
 
 	if len(exercises) == 0 {
-		bot_utils.SendMessage(ctx, b, chatId, messages.NoExercisesMessage(program.Name))
+		h.senderService.Send(ctx, b, chatId, messages.NoExercisesMessage(program.Name))
 		return
 	}
 
@@ -131,7 +133,7 @@ func (h *exerciseHandler) delete(ctx context.Context, b *tg_bot.Bot) {
 	msg := messages.ExerciseDeleteMessage(program.Name)
 	kb := inline_keyboards.ProgramExerciseDeleteList(program.Id, exercises, exercisesCount, limit, offset)
 
-	bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, msg, kb)
+	h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 }
 
 func (h *exerciseHandler) deleteItem(ctx context.Context, b *tg_bot.Bot) {
@@ -140,13 +142,13 @@ func (h *exerciseHandler) deleteItem(ctx context.Context, b *tg_bot.Bot) {
 	exercise := utils_context.GetExerciseFromContext(ctx)
 
 	if exercise.ProgramId != program.Id {
-		bot_utils.SendMessage(ctx, b, chatId, messages.ExerciseNotFoundMessage(exercise.Id))
+		h.senderService.Send(ctx, b, chatId, messages.ExerciseNotFoundMessage(exercise.Id))
 		return
 	}
 
 	h.exerciseRepository.DeleteById(ctx, exercise.Id)
 
-	bot_utils.SendMessage(ctx, b, chatId, messages.ExerciseSuccessfullyDeletedMessage(exercise.Name, program.Name))
+	h.senderService.Send(ctx, b, chatId, messages.ExerciseSuccessfullyDeletedMessage(exercise.Name, program.Name))
 
 	h.backToSelectedProgram(ctx, b, program)
 }
@@ -155,5 +157,6 @@ func (h *exerciseHandler) backToSelectedProgram(ctx context.Context, b *tg_bot.B
 	chatId := utils_context.GetChatIdFromContext(ctx)
 
 	msg := messages.SelectProgramOptionMessage(program.Name)
-	bot_utils.SendMessageWithInlineKeyboard(ctx, b, chatId, msg, inline_keyboards.ProgramSelectedMenu(program.Id))
+
+	h.senderService.SendWithKb(ctx, b, chatId, msg, inline_keyboards.ProgramSelectedMenu(program.Id))
 }
