@@ -13,6 +13,7 @@ type IConfig interface {
 	AppEnv() constants.AppEnv
 
 	BotToken() string
+	WebhookSecretToken() string
 	RequestTimeout() time.Duration
 
 	ErrorStackTraceSizeInKb() int
@@ -23,8 +24,6 @@ type IConfig interface {
 	HttpPort() string
 	SSLCertPath() string
 	SSLKeyPath() string
-
-	AuthToken() string
 }
 
 type configDependencies struct {
@@ -39,6 +38,7 @@ type config struct {
 	appEnv constants.AppEnv
 
 	botToken                string
+	webhookSecretToken      string
 	requestTimeoutInSeconds int
 
 	errorStackTraceSizeInKb int
@@ -49,8 +49,6 @@ type config struct {
 	httpPort    string
 	sslCertPath string
 	sslKeyPath  string
-
-	authToken string
 }
 
 func NewConfig(deps configDependencies) *config {
@@ -69,6 +67,7 @@ func NewConfig(deps configDependencies) *config {
 		config.appEnv = constants.DevelopmentEnv
 	case string(constants.ProductionEnv):
 		config.appEnv = constants.ProductionEnv
+		config.webhookSecretToken = config.getRequiredString("WEBHOOK_SECRET_TOKEN")
 		config.sslCertPath = config.getOptionalString("SSL_CERT_PATH", "./certs/cert.pem")
 		config.sslKeyPath = config.getOptionalString("SSL_KEY_PATH", "./certs/priv.pem")
 	default:
@@ -76,7 +75,6 @@ func NewConfig(deps configDependencies) *config {
 	}
 
 	config.botToken = config.getRequiredString("BOT_TOKEN")
-	config.authToken = config.getRequiredString("AUTH_TOKEN")
 	config.postgresDsn = config.getRequiredString("POSTGRES_DSN")
 	config.runMigrations = config.getOptionalBool("RUN_MIGRATIONS", false)
 	config.requestTimeoutInSeconds = config.getOptionalInt("REQUEST_TIMEOUT_IN_SECONDS", 60)
@@ -96,6 +94,10 @@ func (c *config) BotToken() string {
 
 func (c *config) SSLCertPath() string {
 	return c.sslCertPath
+}
+
+func (c *config) WebhookSecretToken() string {
+	return c.webhookSecretToken
 }
 
 func (c *config) SSLKeyPath() string {
@@ -120,8 +122,4 @@ func (c *config) RequestTimeout() time.Duration {
 
 func (c *config) HttpPort() string {
 	return c.httpPort
-}
-
-func (c *config) AuthToken() string {
-	return c.authToken
 }

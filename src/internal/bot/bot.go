@@ -107,6 +107,7 @@ func NewBot(deps botDependencies) *bot {
 	}
 
 	opts := []tg_bot.Option{
+		tg_bot.WithWebhookSecretToken(b.config.WebhookSecretToken()),
 		tg_bot.WithDefaultHandler(b.defaultHandler.Handle),
 		tg_bot.WithMiddlewares(b.panicRecoveryMiddleware, b.chatIdMiddleware),
 	}
