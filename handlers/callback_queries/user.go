@@ -92,7 +92,9 @@ func (h *userHandler) programList(ctx context.Context, b *tg_bot.Bot) {
 	programs := h.userProgramRepository.GetByUserId(ctx, user.Id, limit, offset)
 
 	if len(programs) == 0 {
-		h.senderService.Send(ctx, b, chatId, messages.NoUserProgramsMessage())
+		msg := messages.NoUserProgramsMessage()
+		kb := inline_keyboards.UserMenuOk()
+		h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 		return
 	}
 
@@ -112,7 +114,9 @@ func (h *userHandler) programSelected(ctx context.Context, b *tg_bot.Bot) {
 
 	if userProgram.UserId != user.Id {
 		h.logger.Error(fmt.Sprintf("Program %d is not assigned for user %d", userProgram.Id, user.Id))
-		h.senderService.Send(ctx, b, chatId, messages.UserProgramNotAssignedMessage(userProgram.Name()))
+		msg := messages.UserProgramNotAssignedMessage(userProgram.Name())
+		kb := inline_keyboards.UserProgramListOk()
+		h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 		return
 	}
 
@@ -129,21 +133,24 @@ func (h *userHandler) resultList(ctx context.Context, b *tg_bot.Bot) {
 
 	if userProgram.UserId != user.Id {
 		h.logger.Error(fmt.Sprintf("Program %d is not assigned for user %d", userProgram.Id, user.Id))
-		h.senderService.Send(ctx, b, chatId, messages.UserProgramNotAssignedMessage(userProgram.Name()))
+		msg := messages.UserProgramNotAssignedMessage(userProgram.Name())
+		kb := inline_keyboards.UserProgramListOk()
+		h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 		return
 	}
 
 	records := h.userExerciseRecordRepository.GetAllByUserProgramId(ctx, userProgram.Id)
 
+	kb := inline_keyboards.UserProgramMenuOk(userProgram.Id)
+
 	if len(records) == 0 {
 		msg := messages.NoRecordsForUserProgramMessage(userProgram.Name())
-		h.senderService.Send(ctx, b, chatId, msg)
+		h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 		return
 	}
 
 	msg := messages.UserProgramResultsMessage(userProgram.Name(), records)
-
-	h.senderService.Send(ctx, b, chatId, msg)
+	h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 }
 
 func (h *userHandler) resultModifyList(ctx context.Context, b *tg_bot.Bot) {
@@ -155,7 +162,9 @@ func (h *userHandler) resultModifyList(ctx context.Context, b *tg_bot.Bot) {
 
 	if userProgram.UserId != user.Id {
 		h.logger.Error(fmt.Sprintf("Program %d is not assigned for user %d", userProgram.Id, user.Id))
-		h.senderService.Send(ctx, b, chatId, messages.UserProgramNotAssignedMessage(userProgram.Name()))
+		msg := messages.UserProgramNotAssignedMessage(userProgram.Name())
+		kb := inline_keyboards.UserProgramListOk()
+		h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 		return
 	}
 
@@ -163,7 +172,8 @@ func (h *userHandler) resultModifyList(ctx context.Context, b *tg_bot.Bot) {
 
 	if len(records) == 0 {
 		msg := messages.NoRecordsForUserProgramMessage(userProgram.Name())
-		h.senderService.Send(ctx, b, chatId, msg)
+		kb := inline_keyboards.UserProgramMenuOk(userProgram.Id)
+		h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 		return
 	}
 
@@ -198,7 +208,7 @@ func (h *userHandler) resultModifySelected(ctx context.Context, b *tg_bot.Bot) {
 	chatId := utils_context.GetChatIdFromContext(ctx)
 	record := utils_context.GetUserExerciseRecordFromContext(ctx)
 
-	h.senderService.Send(ctx, b, chatId, messages.EnterUserResultMessage(record.Name()))
+	h.senderService.SendSafe(ctx, b, chatId, messages.EnterUserResultMessage(record.Name()))
 
 	weight := h.getWeight(ctx, b)
 
@@ -207,6 +217,6 @@ func (h *userHandler) resultModifySelected(ctx context.Context, b *tg_bot.Bot) {
 	})
 
 	msg := messages.UserProgramResultModifiedMessage(record.Name())
-
-	h.senderService.Send(ctx, b, chatId, msg)
+	kb := inline_keyboards.UserProgramMenuOk(record.UserProgramId)
+	h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 }

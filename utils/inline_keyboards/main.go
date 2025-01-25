@@ -58,3 +58,11 @@ func MainOk() *tg_models.InlineKeyboardMarkup {
 		},
 	}
 }
+
+func StartOk() *tg_models.InlineKeyboardMarkup {
+	return &tg_models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]tg_models.InlineKeyboardButton{
+			GetOkButton(callback_data.MainBackToStart, bot_types.NewEmptyParams()),
+		},
+	}
+}

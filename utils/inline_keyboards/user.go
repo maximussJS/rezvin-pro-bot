@@ -114,3 +114,30 @@ func UserProgramMenu(userProgram models.UserProgram) *tg_models.InlineKeyboardMa
 		},
 	}
 }
+
+func UserMenuOk() *tg_models.InlineKeyboardMarkup {
+	return &tg_models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]tg_models.InlineKeyboardButton{
+			GetOkButton(callback_data.MainBackToMain, bot_types.NewEmptyParams()),
+		},
+	}
+}
+
+func UserProgramMenuOk(userProgramId uint) *tg_models.InlineKeyboardMarkup {
+	params := bot_types.NewEmptyParams()
+	params.UserProgramId = userProgramId
+
+	return &tg_models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]tg_models.InlineKeyboardButton{
+			GetOkButton(callback_data.UserProgramSelected, params),
+		},
+	}
+}
+
+func UserProgramListOk() *tg_models.InlineKeyboardMarkup {
+	return &tg_models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]tg_models.InlineKeyboardButton{
+			GetOkButton(callback_data.UserProgramList, bot_types.NewEmptyParams()),
+		},
+	}
+}

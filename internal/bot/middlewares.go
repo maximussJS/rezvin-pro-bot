@@ -8,6 +8,7 @@ import (
 	"rezvin-pro-bot/models"
 	bot_utils "rezvin-pro-bot/utils/bot"
 	utils_context "rezvin-pro-bot/utils/context"
+	"rezvin-pro-bot/utils/inline_keyboards"
 	"rezvin-pro-bot/utils/messages"
 	"runtime"
 )
@@ -20,7 +21,11 @@ func (bot *bot) answerCallbackQueryMiddleware(next tg_bot.HandlerFunc) tg_bot.Ha
 			chatId := utils_context.GetChatIdFromContext(ctx)
 
 			bot.logger.Error(fmt.Sprintf("Failed to answer callback query: %s", update.CallbackQuery.ID))
-			bot.senderService.Send(ctx, b, chatId, messages.ErrorMessage())
+
+			msg := messages.ErrorMessage()
+			kb := inline_keyboards.StartOk()
+
+			bot.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 			return
 		}
 
@@ -41,7 +46,9 @@ func (bot *bot) isRegisteredMiddleware(next tg_bot.HandlerFunc) tg_bot.HandlerFu
 
 			name := fmt.Sprintf("%s %s", firstName, lastName)
 
-			bot.senderService.Send(ctx, b, chatId, messages.NeedRegister(name))
+			msg := messages.NeedRegister(name)
+			kb := inline_keyboards.UserRegister()
+			bot.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 			return
 		}
 
@@ -106,13 +113,19 @@ func (bot *bot) parseParamsMiddleware(next tg_bot.HandlerFunc) tg_bot.HandlerFun
 
 		if err != nil {
 			bot.logger.Error(fmt.Sprintf("Failed to parse params: %s", callbackQueryData))
-			bot.senderService.Send(ctx, b, chatId, messages.ParamsErrorMessage(err))
+			msg := messages.ParamsErrorMessage(err)
+			kb := inline_keyboards.StartOk()
+
+			bot.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 			return
 		}
 
 		if params == nil {
 			bot.logger.Error(fmt.Sprintf("Failed to parse params: %s", update.Message.Text))
-			bot.senderService.Send(ctx, b, chatId, messages.ErrorMessage())
+			msg := messages.ErrorMessage()
+			kb := inline_keyboards.StartOk()
+
+			bot.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 			return
 		}
 
@@ -131,7 +144,10 @@ func (bot *bot) validateParamsMiddleware(next tg_bot.HandlerFunc) tg_bot.Handler
 			user := bot.userRepository.GetById(ctx, params.UserId)
 
 			if user == nil {
-				bot.senderService.Send(ctx, b, chatId, messages.UserNotFoundMessage(params.UserId))
+				msg := messages.UserNotFoundMessage(params.UserId)
+				kb := inline_keyboards.StartOk()
+
+				bot.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 				return
 			}
 
@@ -142,7 +158,10 @@ func (bot *bot) validateParamsMiddleware(next tg_bot.HandlerFunc) tg_bot.Handler
 			program := bot.programRepository.GetById(ctx, params.ProgramId)
 
 			if program == nil {
-				bot.senderService.Send(ctx, b, chatId, messages.ProgramNotFoundMessage(params.ProgramId))
+				msg := messages.ProgramNotFoundMessage(params.ProgramId)
+				kb := inline_keyboards.StartOk()
+
+				bot.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 				return
 			}
 
@@ -153,7 +172,10 @@ func (bot *bot) validateParamsMiddleware(next tg_bot.HandlerFunc) tg_bot.Handler
 			exercise := bot.exerciseRepository.GetById(ctx, params.ExerciseId)
 
 			if exercise == nil {
-				bot.senderService.Send(ctx, b, chatId, messages.ExerciseNotFoundMessage(params.ExerciseId))
+				msg := messages.ExerciseNotFoundMessage(params.ExerciseId)
+				kb := inline_keyboards.StartOk()
+
+				bot.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 				return
 			}
 
@@ -164,7 +186,10 @@ func (bot *bot) validateParamsMiddleware(next tg_bot.HandlerFunc) tg_bot.Handler
 			userProgram := bot.userProgramRepository.GetById(ctx, params.UserProgramId)
 
 			if userProgram == nil {
-				bot.senderService.Send(ctx, b, chatId, messages.ClientProgramNotFoundMessage(params.UserProgramId))
+				msg := messages.ClientProgramNotFoundMessage(params.UserProgramId)
+				kb := inline_keyboards.StartOk()
+
+				bot.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 				return
 			}
 
@@ -175,7 +200,10 @@ func (bot *bot) validateParamsMiddleware(next tg_bot.HandlerFunc) tg_bot.Handler
 			record := bot.userExerciseRecordRepository.GetById(ctx, params.UserExerciseRecordId)
 
 			if record == nil {
-				bot.senderService.Send(ctx, b, chatId, messages.ClientExerciseRecordNotFoundMessage(params.UserExerciseRecordId))
+				msg := messages.ClientExerciseRecordNotFoundMessage(params.UserExerciseRecordId)
+				kb := inline_keyboards.StartOk()
+
+				bot.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 				return
 			}
 
