@@ -59,3 +59,11 @@ func PendingUserDecide(user models.User) *tg_models.InlineKeyboardMarkup {
 		},
 	}
 }
+
+func PendingUsersOk() *tg_models.InlineKeyboardMarkup {
+	return &tg_models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]tg_models.InlineKeyboardButton{
+			GetOkButton(callback_data.PendingUsersList, bot_types.NewEmptyParams()),
+		},
+	}
+}

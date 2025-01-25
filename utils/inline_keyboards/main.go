@@ -3,6 +3,7 @@ package inline_keyboards
 import (
 	tg_models "github.com/go-telegram/bot/models"
 	"rezvin-pro-bot/constants/callback_data"
+	bot_types "rezvin-pro-bot/types/bot"
 )
 
 func AdminMain() *tg_models.InlineKeyboardMarkup {
@@ -46,6 +47,14 @@ func UserMenu() *tg_models.InlineKeyboardMarkup {
 			{
 				{Text: "🔙 Назад", CallbackData: callback_data.MainBackToStart},
 			},
+		},
+	}
+}
+
+func MainOk() *tg_models.InlineKeyboardMarkup {
+	return &tg_models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]tg_models.InlineKeyboardButton{
+			GetOkButton(callback_data.MainBackToMain, bot_types.NewEmptyParams()),
 		},
 	}
 }

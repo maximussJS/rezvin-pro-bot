@@ -42,3 +42,9 @@ func GetBackButton(callBackData string, params *bot_types.Params) []tg_models.In
 		{Text: "🔙 Назад", CallbackData: bot_utils.AddParamsToQueryString(callBackData, params)},
 	}
 }
+
+func GetOkButton(callBackData string, params *bot_types.Params) []tg_models.InlineKeyboardButton {
+	return []tg_models.InlineKeyboardButton{
+		{Text: "✅ Ок", CallbackData: bot_utils.AddParamsToQueryString(callBackData, params)},
+	}
+}

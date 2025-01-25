@@ -22,10 +22,12 @@ type IUserExerciseRecordRepository interface {
 	GetById(ctx context.Context, id uint) *models.UserExerciseRecord
 	CountAllByUserProgramId(ctx context.Context, userProgramId uint) int64
 	GetAllByUserProgramId(ctx context.Context, userProgramId uint) []models.UserExerciseRecord
+	GetAllByExerciseId(ctx context.Context, exerciseId uint) []models.UserExerciseRecord
 	GetByUserProgramId(ctx context.Context, userProgramId uint, limit, offset int) []models.UserExerciseRecord
 	UpdateById(ctx context.Context, id uint, record models.UserExerciseRecord)
 	UpdateByUserIdAndExerciseId(ctx context.Context, userId int64, exerciseId uint, record models.UserExerciseRecord)
 	DeleteByUserProgramId(ctx context.Context, userProgramId uint)
+	DeleteByExerciseId(ctx context.Context, exerciseId uint)
 }
 
 type userExerciseRecordRepository struct {
@@ -105,6 +107,21 @@ func (r *userExerciseRecordRepository) GetAllByUserProgramId(ctx context.Context
 	return records
 }
 
+func (r *userExerciseRecordRepository) GetAllByExerciseId(ctx context.Context, exerciseId uint) []models.UserExerciseRecord {
+	var records []models.UserExerciseRecord
+
+	err := r.db.WithContext(ctx).
+		Preload("Exercise").
+		Where("exercise_id = ?", exerciseId).
+		Order("reps ASC").
+		Find(&records).
+		Error
+
+	utils.PanicIfNotContextError(err)
+
+	return records
+}
+
 func (r *userExerciseRecordRepository) GetByUserProgramId(
 	ctx context.Context,
 	userProgramId uint,
@@ -151,6 +168,15 @@ func (r *userExerciseRecordRepository) UpdateByUserIdAndExerciseId(
 func (r *userExerciseRecordRepository) DeleteByUserProgramId(ctx context.Context, userProgramId uint) {
 	err := r.db.WithContext(ctx).
 		Where("user_program_id = ?", userProgramId).
+		Delete(&models.UserExerciseRecord{}).
+		Error
+
+	utils.PanicIfNotContextError(err)
+}
+
+func (r *userExerciseRecordRepository) DeleteByExerciseId(ctx context.Context, exerciseId uint) {
+	err := r.db.WithContext(ctx).
+		Where("exercise_id = ?", exerciseId).
 		Delete(&models.UserExerciseRecord{}).
 		Error
 

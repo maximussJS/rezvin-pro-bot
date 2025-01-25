@@ -42,7 +42,22 @@ func ProgramExerciseDeleteList(programId uint, exercises []models.Exercise, tota
 		previousParams,
 	))
 
+	backParams := bot_types.NewEmptyParams()
+	backParams.ProgramId = programId
+
 	return &tg_models.InlineKeyboardMarkup{
-		InlineKeyboard: append(exerciseKb, GetBackButton(callback_data.ProgramBack, bot_types.NewEmptyParams())),
+		InlineKeyboard: append(exerciseKb, GetBackButton(callback_data.ProgramSelected, backParams)),
+	}
+}
+
+func ExerciseOk(programId uint) *tg_models.InlineKeyboardMarkup {
+	params := bot_types.NewEmptyParams()
+
+	params.ProgramId = programId
+
+	return &tg_models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]tg_models.InlineKeyboardButton{
+			GetOkButton(callback_data.ProgramSelected, params),
+		},
 	}
 }

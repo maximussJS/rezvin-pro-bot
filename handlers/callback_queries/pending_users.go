@@ -77,7 +77,9 @@ func (h *pendingUsersHandler) list(ctx context.Context, b *tg_bot.Bot) {
 	users := h.userRepository.GetPendingUsers(ctx, limit, offset)
 
 	if len(users) == 0 {
-		h.senderService.SendSafe(ctx, b, chatId, messages.NoPendingUsersMessage())
+		msg := messages.NoPendingUsersMessage()
+		kb := inline_keyboards.MainOk()
+		h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 		return
 	}
 
@@ -108,7 +110,10 @@ func (h *pendingUsersHandler) approve(ctx context.Context, b *tg_bot.Bot) {
 	})
 
 	h.senderService.SendSafe(ctx, b, user.ChatId, messages.UserApprovedMessage(user.GetPublicName()))
-	h.senderService.SendSafe(ctx, b, chatId, messages.UserApprovedForAdminMessage(user.GetPrivateName()))
+
+	adminMsg := messages.UserApprovedForAdminMessage(user.GetPrivateName())
+	adminKb := inline_keyboards.PendingUsersOk()
+	h.senderService.SendWithKb(ctx, b, chatId, adminMsg, adminKb)
 }
 
 func (h *pendingUsersHandler) decline(ctx context.Context, b *tg_bot.Bot) {
@@ -120,6 +125,9 @@ func (h *pendingUsersHandler) decline(ctx context.Context, b *tg_bot.Bot) {
 		IsApproved: false,
 	})
 
-	h.senderService.Send(ctx, b, user.ChatId, messages.UserDeclinedMessage(user.GetPublicName()))
-	h.senderService.Send(ctx, b, chatId, messages.UserDeclinedForAdminMessage(user.GetPrivateName()))
+	h.senderService.SendSafe(ctx, b, user.ChatId, messages.UserDeclinedMessage(user.GetPublicName()))
+
+	adminMsg := messages.UserDeclinedForAdminMessage(user.GetPrivateName())
+	adminKb := inline_keyboards.PendingUsersOk()
+	h.senderService.SendWithKb(ctx, b, chatId, adminMsg, adminKb)
 }

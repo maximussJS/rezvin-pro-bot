@@ -14,6 +14,7 @@ type IProgramRepository interface {
 	Create(ctx context.Context, program models.Program) uint
 	GetById(ctx context.Context, id uint) *models.Program
 	CountAll(ctx context.Context) int64
+	GetAllByProgramId(ctx context.Context, programId uint) []models.Program
 	GetAll(ctx context.Context, limit, offset int) []models.Program
 	GetByName(ctx context.Context, name string) *models.Program
 	CountNotAssignedToUser(ctx context.Context, userId int64) int64
@@ -111,6 +112,16 @@ func (r *programRepository) GetAll(ctx context.Context, limit, offset int) []mod
 	var programs []models.Program
 
 	err := r.db.WithContext(ctx).Limit(limit).Offset(offset).Find(&programs).Error
+
+	utils.PanicIfNotContextError(err)
+
+	return programs
+}
+
+func (r *programRepository) GetAllByProgramId(ctx context.Context, programId uint) []models.Program {
+	var programs []models.Program
+
+	err := r.db.WithContext(ctx).Where("program_id = ?", programId).Find(&programs).Error
 
 	utils.PanicIfNotContextError(err)
 

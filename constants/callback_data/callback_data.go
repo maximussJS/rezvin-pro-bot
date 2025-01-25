@@ -36,7 +36,6 @@ const (
 	ProgramMenu     = "prm"
 	ProgramList     = "prl"
 	ProgramAdd      = "pra"
-	ProgramBack     = "prb"
 
 	PendingUsersPrefix   = "pu"
 	PendingUsersList     = "pul"

@@ -217,3 +217,26 @@ func ClientProgramResultsModifyList(clientId int64, exercises []models.UserExerc
 		InlineKeyboard: append(exerciseKb, GetBackButton(callback_data.ClientSelected, backParams)),
 	}
 }
+
+func ClientSelectedOk(clientId int64) *tg_models.InlineKeyboardMarkup {
+	params := bot_types.NewEmptyParams()
+	params.UserId = clientId
+
+	return &tg_models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]tg_models.InlineKeyboardButton{
+			GetOkButton(callback_data.ClientSelected, params),
+		},
+	}
+}
+
+func ClientProgramSelectedOk(clientId int64, userProgramId uint) *tg_models.InlineKeyboardMarkup {
+	params := bot_types.NewEmptyParams()
+	params.UserId = clientId
+	params.UserProgramId = userProgramId
+
+	return &tg_models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]tg_models.InlineKeyboardButton{
+			GetOkButton(callback_data.ClientProgramSelected, params),
+		},
+	}
+}

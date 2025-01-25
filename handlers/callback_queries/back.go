@@ -86,7 +86,9 @@ func (h *backHandler) backToProgramList(ctx context.Context, b *tg_bot.Bot) {
 	programs := h.programRepository.GetAll(ctx, limit, offset)
 
 	if len(programs) == 0 {
-		h.senderService.Send(ctx, b, chatId, messages.NoProgramsMessage())
+		msg := messages.NoProgramsMessage()
+		kb := inline_keyboards.ProgramMenuOk()
+		h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 		return
 	}
 
@@ -105,7 +107,9 @@ func (h *backHandler) backToPendingUsersList(ctx context.Context, b *tg_bot.Bot)
 	users := h.userRepository.GetPendingUsers(ctx, limit, offset)
 
 	if len(users) == 0 {
-		h.senderService.Send(ctx, b, chatId, messages.NoPendingUsersMessage())
+		msg := messages.NoPendingUsersMessage()
+		kb := inline_keyboards.MainOk()
+		h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 		return
 	}
 
@@ -124,7 +128,9 @@ func (h *backHandler) backToClientList(ctx context.Context, b *tg_bot.Bot) {
 	clients := h.userRepository.GetClients(ctx, limit, offset)
 
 	if len(clients) == 0 {
-		h.senderService.Send(ctx, b, chatId, messages.NoClientsMessage())
+		msg := messages.NoClientsMessage()
+		kb := inline_keyboards.MainOk()
+		h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 		return
 	}
 

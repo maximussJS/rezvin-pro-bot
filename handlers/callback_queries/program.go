@@ -69,11 +69,14 @@ func (h *programHandler) Handle(ctx context.Context, b *tg_bot.Bot, update *tg_m
 		return
 	}
 
-	switch update.CallbackQuery.Data {
-	case callback_data.ProgramMenu:
+	if strings.HasPrefix(callbackDataQuery, callback_data.ProgramMenu) {
 		h.menu(ctx, b)
-	case callback_data.ProgramAdd:
+		return
+	}
+
+	if strings.HasPrefix(callbackDataQuery, callback_data.ProgramAdd) {
 		h.add(ctx, b)
+		return
 	}
 }
 
@@ -85,13 +88,11 @@ func (h *programHandler) menu(ctx context.Context, b *tg_bot.Bot) {
 	h.senderService.SendWithKb(ctx, b, chatId, msg, inline_keyboards.ProgramMenu())
 }
 
-func (h *programHandler) add(ctx context.Context, b *tg_bot.Bot) {
+func (h *programHandler) getProgramName(ctx context.Context, b *tg_bot.Bot) string {
 	chatId := utils_context.GetChatIdFromContext(ctx)
 
 	conversation := h.conversationService.CreateConversation(chatId)
 	defer h.conversationService.DeleteConversation(chatId)
-
-	h.senderService.Send(ctx, b, chatId, messages.EnterProgramNameMessage())
 
 	programName := conversation.WaitAnswer()
 
@@ -99,14 +100,28 @@ func (h *programHandler) add(ctx context.Context, b *tg_bot.Bot) {
 
 	if existingProgram != nil {
 		h.senderService.Send(ctx, b, chatId, messages.ProgramNameAlreadyExistsMessage(programName))
-		return
+		return h.getProgramName(ctx, b)
 	}
 
-	h.programRepository.Create(ctx, models.Program{
+	return programName
+}
+
+func (h *programHandler) add(ctx context.Context, b *tg_bot.Bot) {
+	chatId := utils_context.GetChatIdFromContext(ctx)
+
+	h.senderService.SendSafe(ctx, b, chatId, messages.EnterProgramNameMessage())
+
+	programName := h.getProgramName(ctx, b)
+
+	programId := h.programRepository.Create(ctx, models.Program{
 		Name: programName,
 	})
 
-	h.senderService.Send(ctx, b, chatId, messages.ProgramSuccessfullyAddedMessage(programName))
+	msg := messages.ProgramSuccessfullyAddedMessage(programName)
+
+	kb := inline_keyboards.ProgramOk(programId)
+
+	h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 }
 
 func (h *programHandler) list(ctx context.Context, b *tg_bot.Bot) {
@@ -117,7 +132,9 @@ func (h *programHandler) list(ctx context.Context, b *tg_bot.Bot) {
 	programs := h.programRepository.GetAll(ctx, limit, offset)
 
 	if len(programs) == 0 {
-		h.senderService.Send(ctx, b, chatId, messages.NoProgramsMessage())
+		msg := messages.NoProgramsMessage()
+		kb := inline_keyboards.ProgramMenuOk()
+		h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 		return
 	}
 
@@ -142,25 +159,19 @@ func (h *programHandler) rename(ctx context.Context, b *tg_bot.Bot) {
 	chatId := utils_context.GetChatIdFromContext(ctx)
 	program := utils_context.GetProgramFromContext(ctx)
 
-	conversation := h.conversationService.CreateConversation(chatId)
-	defer h.conversationService.DeleteConversation(chatId)
+	h.senderService.SendSafe(ctx, b, chatId, messages.EnterProgramNameMessage())
 
-	h.senderService.Send(ctx, b, chatId, messages.EnterProgramNameMessage())
-
-	programName := conversation.WaitAnswer()
-
-	existingProgram := h.programRepository.GetByName(ctx, programName)
-
-	if existingProgram != nil {
-		h.senderService.Send(ctx, b, chatId, messages.ProgramNameAlreadyExistsMessage(programName))
-		return
-	}
+	programName := h.getProgramName(ctx, b)
 
 	h.programRepository.UpdateById(ctx, program.Id, models.Program{
 		Name: programName,
 	})
 
-	h.senderService.Send(ctx, b, chatId, messages.ProgramSuccessfullyRenamedMessage(program.Name, programName))
+	msg := messages.ProgramSuccessfullyRenamedMessage(program.Name, programName)
+
+	kb := inline_keyboards.ProgramOk(program.Id)
+
+	h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 }
 
 func (h *programHandler) delete(ctx context.Context, b *tg_bot.Bot) {
@@ -169,5 +180,8 @@ func (h *programHandler) delete(ctx context.Context, b *tg_bot.Bot) {
 
 	h.programRepository.DeleteById(ctx, program.Id)
 
-	h.senderService.Send(ctx, b, chatId, messages.ProgramSuccessfullyDeletedMessage(program.Name))
+	msg := messages.ProgramSuccessfullyDeletedMessage(program.Name)
+	kb := inline_keyboards.ProgramDeleteOk()
+
+	h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 }

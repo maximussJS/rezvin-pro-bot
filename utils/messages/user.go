@@ -67,3 +67,11 @@ func EnterUserResultMessage(exerciseName string) string {
 func UserProgramResultModifiedMessage(exerciseName string) string {
 	return fmt.Sprintf("Результати вправи \"*%s*\" успішно змінено\\.", exerciseName)
 }
+
+func UserProgramAssignedMessage(programName string) string {
+	return fmt.Sprintf("Роман призначив тобі нову програму \"*%s*\"\\.", programName)
+}
+
+func UserProgramUnassignedMessage(programName string) string {
+	return fmt.Sprintf("Роман відмінив тобі програму \"*%s*\"\\.", programName)
+}

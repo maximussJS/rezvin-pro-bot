@@ -51,7 +51,7 @@ func ProgramList(programs []models.Program, totalProgramCount int64, limit, offs
 	))
 
 	return &tg_models.InlineKeyboardMarkup{
-		InlineKeyboard: append(programKb, GetBackButton(callback_data.MainBackToMain, bot_types.NewEmptyParams())),
+		InlineKeyboard: append(programKb, GetBackButton(callback_data.ProgramMenu, bot_types.NewEmptyParams())),
 	}
 }
 
@@ -80,6 +80,34 @@ func ProgramSelectedMenu(programId uint) *tg_models.InlineKeyboardMarkup {
 			{
 				{Text: "🔙 Назад", CallbackData: callback_data.BackToProgramList},
 			},
+		},
+	}
+}
+
+func ProgramOk(programId uint) *tg_models.InlineKeyboardMarkup {
+	params := bot_types.NewEmptyParams()
+
+	params.ProgramId = programId
+
+	return &tg_models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]tg_models.InlineKeyboardButton{
+			GetOkButton(callback_data.ProgramSelected, params),
+		},
+	}
+}
+
+func ProgramDeleteOk() *tg_models.InlineKeyboardMarkup {
+	return &tg_models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]tg_models.InlineKeyboardButton{
+			GetOkButton(callback_data.BackToProgramList, bot_types.NewEmptyParams()),
+		},
+	}
+}
+
+func ProgramMenuOk() *tg_models.InlineKeyboardMarkup {
+	return &tg_models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]tg_models.InlineKeyboardButton{
+			GetOkButton(callback_data.ProgramMenu, bot_types.NewEmptyParams()),
 		},
 	}
 }

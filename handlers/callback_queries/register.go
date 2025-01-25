@@ -86,6 +86,6 @@ func (h *registerHandler) registerUser(ctx context.Context, b *tg_bot.Bot, updat
 	name := fmt.Sprintf("%s %s", firstName, lastName)
 
 	for _, admin := range admins {
-		h.senderService.Send(ctx, b, admin.ChatId, messages.NewRegister(name))
+		h.senderService.SendSafe(ctx, b, admin.ChatId, messages.NewRegister(name))
 	}
 }

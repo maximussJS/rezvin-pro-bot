@@ -84,9 +84,9 @@ func (h *mainHandler) backToMain(ctx context.Context, b *tg_bot.Bot, update *tg_
 			h.senderService.SendWithKb(ctx, b, chatId, msg, inline_keyboards.UserMenu())
 		} else {
 			if user.IsDeclined {
-				h.senderService.Send(ctx, b, chatId, messages.UserDeclinedMessage(user.GetPublicName()))
+				h.senderService.SendSafe(ctx, b, chatId, messages.UserDeclinedMessage(user.GetPublicName()))
 			} else {
-				h.senderService.Send(ctx, b, chatId, messages.AlreadyRegistered())
+				h.senderService.SendSafe(ctx, b, chatId, messages.AlreadyRegistered())
 			}
 		}
 	}
@@ -95,5 +95,5 @@ func (h *mainHandler) backToMain(ctx context.Context, b *tg_bot.Bot, update *tg_
 func (h *mainHandler) backToStart(ctx context.Context, b *tg_bot.Bot) {
 	chatId := utils_context.GetChatIdFromContext(ctx)
 
-	h.senderService.Send(ctx, b, chatId, messages.PressStartMessage())
+	h.senderService.SendSafe(ctx, b, chatId, messages.PressStartMessage())
 }

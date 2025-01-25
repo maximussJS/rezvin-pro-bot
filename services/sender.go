@@ -107,12 +107,12 @@ func (s *senderService) SendSafe(ctx context.Context, b *tg_bot.Bot, chatId int6
 	}, false)
 }
 
-func (s *senderService) send(ctx context.Context, b *tg_bot.Bot, params *tg_bot.SendMessageParams, delete bool) {
+func (s *senderService) send(ctx context.Context, b *tg_bot.Bot, params *tg_bot.SendMessageParams, safe bool) {
 	chatId := params.ChatID.(int64)
 
 	lastMsg := s.lastMessageRepository.GetByChatId(ctx, chatId)
 
-	if lastMsg != nil && delete {
+	if lastMsg != nil && !safe {
 		ok, err := b.DeleteMessage(ctx, &tg_bot.DeleteMessageParams{
 			ChatID:    chatId,
 			MessageID: lastMsg.MessageId,
@@ -128,14 +128,16 @@ func (s *senderService) send(ctx context.Context, b *tg_bot.Bot, params *tg_bot.
 
 	utils.PanicIfError(err)
 
-	if lastMsg == nil {
-		s.lastMessageRepository.Create(ctx, models.LastUserMessage{
-			ChatId:    chatId,
-			MessageId: msg.ID,
-		})
-	} else {
-		s.lastMessageRepository.UpdateByChatId(ctx, chatId, models.LastUserMessage{
-			MessageId: msg.ID,
-		})
+	if !safe {
+		if lastMsg == nil {
+			s.lastMessageRepository.Create(ctx, models.LastUserMessage{
+				ChatId:    chatId,
+				MessageId: msg.ID,
+			})
+		} else {
+			s.lastMessageRepository.UpdateByChatId(ctx, chatId, models.LastUserMessage{
+				MessageId: msg.ID,
+			})
+		}
 	}
 }
