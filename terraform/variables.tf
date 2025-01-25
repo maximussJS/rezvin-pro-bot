@@ -11,9 +11,9 @@ variable "hcloud_ssh_key_fingerprint" {
 }
 
 variable "server_name" {
-  description = "Sushi Backend API"
+  description = "Server Name"
   type        = string
-  default     = "sushi-backend-api"
+  default     = "rezvin"
 }
 
 variable "image" {
@@ -36,55 +36,46 @@ variable "private_key_content" {
 
 
 # PostgreSQL Data Source Name
-variable "postgres_dsn" {
-  description = "PostgreSQL Data Source Name"
-  type        = string
-}
-
-# Cloudinary URL
-variable "cloudinary_url" {
-  description = "Cloudinary URL for media management"
-  type        = string
-}
-
-# Telegram Bot Token
-variable "telegram_bot_token" {
-  description = "Token for the Telegram bot"
-  type        = string
-  sensitive   = true
-}
-
-# Telegram Orders Chat ID
-variable "telegram_orders_chat_id" {
-  description = "Chat ID for Telegram orders notifications"
-  type        = string
-}
-
-# Telegram Delivery Chat ID
-variable "telegram_delivery_chat_id" {
-  description = "Chat ID for Telegram delivery notifications"
-  type        = string
-}
-
-# Application Environment
 variable "app_env" {
-  description = "Application environment (e.g., development, production)"
+  description = "The application environment (e.g., development, production)"
   type        = string
-  default     = "development"
+  default     = "production"
 }
 
-# Administrator Password
-variable "admin_password" {
-  description = "Password for the administrator account"
+variable "bot_token" {
+  description = "Token for authenticating the bot"
   type        = string
   sensitive   = true
 }
 
-# JWT Secret Key
-variable "jwt_secret_key" {
-  description = "Secret key for JWT token generation"
+variable "postgres_dsn" {
+  description = "PostgreSQL Data Source Name containing connection details"
   type        = string
   sensitive   = true
+}
+
+variable "webhook_secret_token" {
+  description = "Telegram Webhook Secret Token"
+  type = string
+  sensitive = true
+}
+
+variable "run_migrations" {
+  description = "Flag to determine whether to run database migrations"
+  type        = bool
+  default     = true
+}
+
+variable "request_timeout_in_seconds" {
+  description = "Timeout duration for requests in seconds"
+  type        = number
+  default     = 60
+}
+
+variable "http_port" {
+  description = "Port on which the HTTP server listens"
+  type        = string
+  default     = ":443"
 }
 
 variable "ssl_cert_path" {

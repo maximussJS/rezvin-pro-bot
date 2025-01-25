@@ -22,7 +22,7 @@ data "hcloud_ssh_key" "ssh_key" {
 }
 
 # Create the Hetzner server
-resource "hcloud_server" "sushi_backend" {
+resource "hcloud_server" "rezvin" {
   name        = var.server_name
   server_type = "cpx11"         # Adjust as needed (cpx11, cpx21, etc.)
   image       = "ubuntu-22.04"  # Use the desired base image
@@ -32,12 +32,12 @@ resource "hcloud_server" "sushi_backend" {
 
 # Upload certificates to the server
 resource "null_resource" "upload_certs" {
-  depends_on = [hcloud_server.sushi_backend]
+  depends_on = [hcloud_server.rezvin]
 
   provisioner "file" {
     connection {
       type        = "ssh"
-      host        = hcloud_server.sushi_backend.ipv4_address
+      host        = hcloud_server.rezvin.ipv4_address
       user        = "root"
       private_key = (
       var.private_key_content != "" ?
@@ -54,7 +54,7 @@ resource "null_resource" "upload_certs" {
   provisioner "remote-exec" {
     connection {
       type        = "ssh"
-      host        = hcloud_server.sushi_backend.ipv4_address
+      host        = hcloud_server.rezvin.ipv4_address
       user        = "root"
       private_key = (
       var.private_key_content != "" ?
@@ -80,14 +80,14 @@ resource "null_resource" "upload_certs" {
 # Setup Docker and deploy the container with environment variables and mounted certs
 resource "null_resource" "docker_setup" {
   depends_on = [
-    hcloud_server.sushi_backend,
+    hcloud_server.rezvin,
     null_resource.upload_certs
   ]
 
   provisioner "remote-exec" {
     connection {
       type        = "ssh"
-      host        = hcloud_server.sushi_backend.ipv4_address
+      host        = hcloud_server.rezvin.ipv4_address
       user        = "root"
       private_key = (
       var.private_key_content != "" ?
@@ -107,17 +107,15 @@ resource "null_resource" "docker_setup" {
       "docker pull ${var.image}",
 
       # Run the Docker container with environment variables and mounted certs directory
-      "docker run -d -p 8080:8080 \\",
+      "docker run -d -p 443:443 \\",
       "  --env POSTGRES_DSN='${replace(var.postgres_dsn, "'", "\\'")}' \\",
-      "  --env CLOUDINARY_URL='${replace(var.cloudinary_url, "'", "\\'")}' \\",
-      "  --env TELEGRAM_BOT_TOKEN='${replace(var.telegram_bot_token, "'", "\\'")}' \\",
-      "  --env TELEGRAM_ORDERS_CHAT_ID='${replace(var.telegram_orders_chat_id, "'", "\\'")}' \\",
-      "  --env TELEGRAM_DELIVERY_CHAT_ID='${replace(var.telegram_delivery_chat_id, "'", "\\'")}' \\",
       "  --env APP_ENV='${replace(var.app_env, "'", "\\'")}' \\",
-      "  --env ADMIN_PASSWORD='${replace(var.admin_password, "'", "\\'")}' \\",
-      "  --env JWT_SECRET_KEY='${replace(var.jwt_secret_key, "'", "\\'")}' \\",
       "  --env SSL_CERT_PATH='${replace(var.ssl_cert_path, "'", "\\'")}' \\",
       "  --env SSL_KEY_PATH='${replace(var.ssl_key_path, "'", "\\'")}' \\",
+      "  --env BOT_TOKEN='${replace(var.bot_token, "'", "\\'")}' \\",
+      "  --env WEBHOOK_SECRET_TOKEN='${replace(var.webhook_secret_token, "'", "\\'")}' \\",
+      "  --env HTTP_PORT='${replace(var.http_port, "'", "\\'")}' \\",
+      "  --env RUN_MIGRATIONS='${replace(var.run_migrations, "'", "\\'")}' \\",
       "  -v /certs:/app/certs \\",
       "  ${var.image}"
     ]
