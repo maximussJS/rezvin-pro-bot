@@ -1,6 +1,9 @@
 package messages
 
-import "fmt"
+import (
+	"fmt"
+	"rezvin-pro-bot/src/constants"
+)
 
 func NoPendingUsersMessage() string {
 	return "Немає користувачів, які чекають на підтвердження\\."
@@ -15,11 +18,11 @@ func SelectPendingUserOptionMessage(name string) string {
 }
 
 func UserApprovedMessage(name string) string {
-	return fmt.Sprintf("Привіт, *%s*\\! Роман підтвердив твою реєстрацію в базі клієнтів\\. Ти можеш користуватися всіма функціями бота, Введи /start, щоб почати роботу\\.\\.", name)
+	return fmt.Sprintf("Привіт, *%s*\\! %s підтвердив твою реєстрацію в базі клієнтів\\. Ти можеш користуватися всіма функціями бота, Введи /start, щоб почати роботу\\.\\.", name, constants.AdminName)
 }
 
 func UserDeclinedMessage(name string) string {
-	return fmt.Sprintf("Привіт, *%s*\\! Роман відхилив твою реєстрацію в базі клієнтів\\. Якщо у тебе є питання, звертайся до нього\\.", name)
+	return fmt.Sprintf("Привіт, *%s*\\! %s відхилив твою реєстрацію в базі клієнтів\\. Якщо у тебе є питання, звертайся до нього\\.", name, constants.AdminName)
 }
 
 func UserApprovedForAdminMessage(name string) string {

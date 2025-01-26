@@ -107,7 +107,7 @@ resource "null_resource" "docker_setup" {
       "docker pull ${var.image}",
 
       # Run the Docker container with environment variables and mounted certs directory
-      "docker run -d -p 443:443 \\",
+      "docker run -d \\",
       "  --env POSTGRES_DSN='${replace(var.postgres_dsn, "'", "\\'")}' \\",
       "  --env APP_ENV='${replace(var.app_env, "'", "\\'")}' \\",
       "  --env SSL_CERT_PATH='${replace(var.ssl_cert_path, "'", "\\'")}' \\",

@@ -3,6 +3,7 @@ package messages
 import (
 	"fmt"
 	tg_bot "github.com/go-telegram/bot"
+	"rezvin-pro-bot/src/constants"
 	"strings"
 )
 
@@ -22,7 +23,7 @@ func NeedRegister(name string) string {
 }
 
 func AlreadyRegistered() string {
-	return "Ти вже зареєстрований в базі клієнтів\\. Але Роман ще не підключив тебе до бота\\. Чекай на підтвердження\\."
+	return fmt.Sprintf("Ти вже зареєстрований в базі клієнтів\\. Але %s ще не підключив тебе до бота\\. Чекай на підтвердження\\.", constants.AdminName)
 }
 
 func AlreadyApprovedRegister() string {
@@ -30,7 +31,7 @@ func AlreadyApprovedRegister() string {
 }
 
 func SuccessRegister() string {
-	return "Ти успішно зареєстрований в базі клієнтів\\. Чекай на підтвердження від Романа\\."
+	return fmt.Sprintf("Ти успішно зареєстрований в базі клієнтів\\. Чекай на підтвердження від %s\\.", constants.AdminName)
 }
 
 func NewRegister(name string) string {

@@ -1,7 +1,7 @@
 package constants
 
 const (
-	DefaultLimit  = 2
+	DefaultLimit  = 5
 	DefaultOffset = 0
 	AdminName     = "Роман"
 )

@@ -2,6 +2,7 @@ package messages
 
 import (
 	"fmt"
+	"rezvin-pro-bot/src/constants"
 	"rezvin-pro-bot/src/models"
 	"strings"
 )
@@ -11,11 +12,11 @@ func UserNotFoundMessage(userId int64) string {
 }
 
 func UserNotApprovedMessage() string {
-	return "Роман ще не підтвердив твою реєстрацію в базі клієнтів\\. Потрібно зачекати підтвердження\\."
+	return fmt.Sprintf("%s ще не підтвердив твою реєстрацію в базі клієнтів\\. Потрібно зачекати підтвердження\\.", constants.AdminName)
 }
 
 func NoUserProgramsMessage() string {
-	return "Програм не знайдено для тебе\\. Роман ще не призначив тобі жодної програми\\."
+	return fmt.Sprintf("Програм не знайдено для тебе\\. %s ще не призначив тобі жодної програми\\.", constants.AdminName)
 }
 
 func SelectUserProgramMessage() string {
@@ -69,9 +70,9 @@ func UserProgramResultModifiedMessage(exerciseName string) string {
 }
 
 func UserProgramAssignedMessage(programName string) string {
-	return fmt.Sprintf("Роман призначив тобі нову програму \"*%s*\"\\.", programName)
+	return fmt.Sprintf("%s призначив тобі нову програму \"*%s*\"\\.", constants.AdminName, programName)
 }
 
 func UserProgramUnassignedMessage(programName string) string {
-	return fmt.Sprintf("Роман відмінив тобі програму \"*%s*\"\\.", programName)
+	return fmt.Sprintf("%s відмінив тобі програму \"*%s*\"\\.", constants.AdminName, programName)
 }

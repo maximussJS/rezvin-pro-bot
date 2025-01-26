@@ -3,6 +3,7 @@ package messages
 import (
 	"fmt"
 	tg_bot "github.com/go-telegram/bot"
+	"rezvin-pro-bot/src/constants"
 	"strings"
 )
 
@@ -22,7 +23,7 @@ func UserMenuMessage(name string) string {
 func AdminMainMessage() string {
 	var sb strings.Builder
 
-	sb.WriteString("Привіт, *Роман*\\!\n")
+	sb.WriteString(fmt.Sprintf("Привіт, *%s*\\!\n", constants.AdminName))
 	sb.WriteString("Вибери одну з наступних дій\\:\n")
 
 	return sb.String()
