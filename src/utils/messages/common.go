@@ -20,6 +20,10 @@ func DefaultMessage() string {
 	return "Я не розумію тебе\\.\n Введи /start, щоб почати роботу\\. "
 }
 
+func EmptyMessage() string {
+	return "Введи слово\\."
+}
+
 func AdminOnlyMessage() string {
 	return "Ця дія доступна тільки адміністраторам\\."
 }

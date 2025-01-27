@@ -10,8 +10,8 @@ import (
 	"rezvin-pro-bot/src/models"
 	"rezvin-pro-bot/src/repositories"
 	services2 "rezvin-pro-bot/src/services"
-	utils_context2 "rezvin-pro-bot/src/utils/context"
-	inline_keyboards2 "rezvin-pro-bot/src/utils/inline_keyboards"
+	utils_context "rezvin-pro-bot/src/utils/context"
+	inline_keyboards "rezvin-pro-bot/src/utils/inline_keyboards"
 	"rezvin-pro-bot/src/utils/messages"
 	"strings"
 )
@@ -70,39 +70,39 @@ func (h *pendingUsersHandler) Handle(ctx context.Context, b *tg_bot.Bot, update 
 }
 
 func (h *pendingUsersHandler) list(ctx context.Context, b *tg_bot.Bot) {
-	chatId := utils_context2.GetChatIdFromContext(ctx)
-	limit := utils_context2.GetLimitFromContext(ctx)
-	offset := utils_context2.GetOffsetFromContext(ctx)
+	chatId := utils_context.GetChatIdFromContext(ctx)
+	limit := utils_context.GetLimitFromContext(ctx)
+	offset := utils_context.GetOffsetFromContext(ctx)
 
 	users := h.userRepository.GetPendingUsers(ctx, limit, offset)
 
 	if len(users) == 0 {
 		msg := messages.NoPendingUsersMessage()
-		kb := inline_keyboards2.MainOk()
+		kb := inline_keyboards.MainOk()
 		h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 		return
 	}
 
 	usersCount := h.userRepository.CountPendingUsers(ctx)
 
-	kb := inline_keyboards2.PendingUsersList(users, usersCount, limit, offset)
+	kb := inline_keyboards.PendingUsersList(users, usersCount, limit, offset)
 
 	h.senderService.SendWithKb(ctx, b, chatId, messages.SelectPendingUserMessage(), kb)
 }
 
 func (h *pendingUsersHandler) selected(ctx context.Context, b *tg_bot.Bot) {
-	chatId := utils_context2.GetChatIdFromContext(ctx)
-	user := utils_context2.GetUserFromContext(ctx)
+	chatId := utils_context.GetChatIdFromContext(ctx)
+	user := utils_context.GetUserFromContext(ctx)
 
 	msg := messages.SelectPendingUserOptionMessage(user.GetPrivateName())
-	kb := inline_keyboards2.PendingUserDecide(*user)
+	kb := inline_keyboards.PendingUserDecide(*user)
 
 	h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 }
 
 func (h *pendingUsersHandler) approve(ctx context.Context, b *tg_bot.Bot) {
-	chatId := utils_context2.GetChatIdFromContext(ctx)
-	user := utils_context2.GetUserFromContext(ctx)
+	chatId := utils_context.GetChatIdFromContext(ctx)
+	user := utils_context.GetUserFromContext(ctx)
 
 	h.userRepository.UpdateById(ctx, user.Id, models.User{
 		IsApproved: true,
@@ -112,13 +112,13 @@ func (h *pendingUsersHandler) approve(ctx context.Context, b *tg_bot.Bot) {
 	h.senderService.Send(ctx, b, user.ChatId, messages.UserApprovedMessage(user.GetPublicName()))
 
 	adminMsg := messages.UserApprovedForAdminMessage(user.GetPrivateName())
-	adminKb := inline_keyboards2.PendingUsersOk()
+	adminKb := inline_keyboards.PendingUsersOk()
 	h.senderService.SendWithKb(ctx, b, chatId, adminMsg, adminKb)
 }
 
 func (h *pendingUsersHandler) decline(ctx context.Context, b *tg_bot.Bot) {
-	chatId := utils_context2.GetChatIdFromContext(ctx)
-	user := utils_context2.GetUserFromContext(ctx)
+	chatId := utils_context.GetChatIdFromContext(ctx)
+	user := utils_context.GetUserFromContext(ctx)
 
 	h.userRepository.UpdateById(ctx, user.Id, models.User{
 		IsDeclined: true,
@@ -128,6 +128,6 @@ func (h *pendingUsersHandler) decline(ctx context.Context, b *tg_bot.Bot) {
 	h.senderService.Send(ctx, b, user.ChatId, messages.UserDeclinedMessage(user.GetPublicName()))
 
 	adminMsg := messages.UserDeclinedForAdminMessage(user.GetPrivateName())
-	adminKb := inline_keyboards2.PendingUsersOk()
+	adminKb := inline_keyboards.PendingUsersOk()
 	h.senderService.SendWithKb(ctx, b, chatId, adminMsg, adminKb)
 }

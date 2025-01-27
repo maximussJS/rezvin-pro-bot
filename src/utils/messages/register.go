@@ -4,6 +4,7 @@ import (
 	"fmt"
 	tg_bot "github.com/go-telegram/bot"
 	"rezvin-pro-bot/src/constants"
+	"rezvin-pro-bot/src/utils"
 	"strings"
 )
 
@@ -35,5 +36,5 @@ func SuccessRegister() string {
 }
 
 func NewRegister(name string) string {
-	return fmt.Sprintf("Новий користувач \"*%s*\" чекає на підтверження\\.", name)
+	return fmt.Sprintf("Новий користувач \"*%s*\" чекає на підтверження\\.", utils.EscapeMarkdown(name))
 }

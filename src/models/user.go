@@ -28,7 +28,15 @@ func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
 }
 
 func (u *User) GetPrivateName() string {
-	text := fmt.Sprintf("%s %s", u.FirstName, u.LastName)
+	var text string
+
+	if u.FirstName != "" {
+		text += u.FirstName
+	}
+
+	if u.LastName != "" {
+		text += fmt.Sprintf(" %s", u.LastName)
+	}
 
 	if u.Username != "" {
 		text += fmt.Sprintf(" @%s", u.Username)
@@ -38,10 +46,14 @@ func (u *User) GetPrivateName() string {
 }
 
 func (u *User) GetPublicName() string {
-	text := fmt.Sprintf("%s %s", u.FirstName, u.LastName)
+	var text string
 
-	if u.Username != "" {
-		text += fmt.Sprintf(" @%s", u.Username)
+	if u.FirstName != "" {
+		text += u.FirstName
+	}
+
+	if u.LastName != "" {
+		text += fmt.Sprintf(" %s", u.LastName)
 	}
 
 	return text

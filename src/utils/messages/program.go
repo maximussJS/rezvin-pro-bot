@@ -1,6 +1,9 @@
 package messages
 
-import "fmt"
+import (
+	"fmt"
+	"rezvin-pro-bot/src/utils"
+)
 
 func ProgramMenuMessage() string {
 	return "Вибери одну з наступних дій для програм\\:\n"
@@ -11,11 +14,11 @@ func EnterProgramNameMessage() string {
 }
 
 func ProgramNameAlreadyExistsMessage(programName string) string {
-	return fmt.Sprintf("Програма з назвою \"*%s*\" вже існує\\. Cпробуй заново", programName)
+	return fmt.Sprintf("Програма з назвою \"*%s*\" вже існує\\. Cпробуй заново", utils.EscapeMarkdown(programName))
 }
 
 func ProgramSuccessfullyAddedMessage(programName string) string {
-	return fmt.Sprintf("Програма \"*%s*\" успішно додана\\.", programName)
+	return fmt.Sprintf("Програма \"*%s*\" успішно додана\\.", utils.EscapeMarkdown(programName))
 }
 
 func NoProgramsMessage() string {
@@ -31,13 +34,13 @@ func SelectProgramMessage() string {
 }
 
 func SelectProgramOptionMessage(programName string) string {
-	return fmt.Sprintf("Вибери одну з наступних дій для програми \"*%s*\" \\:", programName)
+	return fmt.Sprintf("Вибери одну з наступних дій для програми \"*%s*\" \\:", utils.EscapeMarkdown(programName))
 }
 
 func ProgramSuccessfullyRenamedMessage(oldProgramName, programName string) string {
-	return fmt.Sprintf("Програма \"*%s*\" успішно перейменована на \"*%s*\" \\.", oldProgramName, programName)
+	return fmt.Sprintf("Програма \"*%s*\" успішно перейменована на \"*%s*\" \\.", utils.EscapeMarkdown(oldProgramName), utils.EscapeMarkdown(programName))
 }
 
 func ProgramSuccessfullyDeletedMessage(programName string) string {
-	return fmt.Sprintf("Програма \"*%s*\" успішно видалена\\.", programName)
+	return fmt.Sprintf("Програма \"*%s*\" успішно видалена\\.", utils.EscapeMarkdown(programName))
 }
