@@ -9,9 +9,9 @@ import (
 	"rezvin-pro-bot/src/constants/callback_data"
 	"rezvin-pro-bot/src/internal/logger"
 	"rezvin-pro-bot/src/models"
-	repositories2 "rezvin-pro-bot/src/repositories"
-	services2 "rezvin-pro-bot/src/services"
-	utils_context2 "rezvin-pro-bot/src/utils/context"
+	"rezvin-pro-bot/src/repositories"
+	"rezvin-pro-bot/src/services"
+	utils_context "rezvin-pro-bot/src/utils/context"
 	"rezvin-pro-bot/src/utils/inline_keyboards"
 	"rezvin-pro-bot/src/utils/messages"
 	"rezvin-pro-bot/src/utils/validate"
@@ -25,22 +25,23 @@ type IUserHandler interface {
 type userHandlerDependencies struct {
 	dig.In
 
-	Logger              logger.ILogger                 `name:"Logger"`
-	ConversationService services2.IConversationService `name:"ConversationService"`
-	SenderService       services2.ISenderService       `name:"SenderService"`
-
-	UserRepository               repositories2.IUserRepository               `name:"UserRepository"`
-	UserProgramRepository        repositories2.IUserProgramRepository        `name:"UserProgramRepository"`
-	UserExerciseRecordRepository repositories2.IUserExerciseRecordRepository `name:"UserExerciseRecordRepository"`
+	Logger                       logger.ILogger                             `name:"Logger"`
+	ConversationService          services.IConversationService              `name:"ConversationService"`
+	SenderService                services.ISenderService                    `name:"SenderService"`
+	ExerciseRepository           repositories.IExerciseRepository           `name:"ExerciseRepository"`
+	UserRepository               repositories.IUserRepository               `name:"UserRepository"`
+	UserProgramRepository        repositories.IUserProgramRepository        `name:"UserProgramRepository"`
+	UserExerciseRecordRepository repositories.IUserExerciseRecordRepository `name:"UserExerciseRecordRepository"`
 }
 
 type userHandler struct {
 	logger                       logger.ILogger
-	conversationService          services2.IConversationService
-	senderService                services2.ISenderService
-	userRepository               repositories2.IUserRepository
-	userProgramRepository        repositories2.IUserProgramRepository
-	userExerciseRecordRepository repositories2.IUserExerciseRecordRepository
+	conversationService          services.IConversationService
+	senderService                services.ISenderService
+	exerciseRepository           repositories.IExerciseRepository
+	userRepository               repositories.IUserRepository
+	userProgramRepository        repositories.IUserProgramRepository
+	userExerciseRecordRepository repositories.IUserExerciseRecordRepository
 }
 
 func NewUserHandler(deps userHandlerDependencies) *userHandler {
@@ -48,6 +49,7 @@ func NewUserHandler(deps userHandlerDependencies) *userHandler {
 		logger:                       deps.Logger,
 		senderService:                deps.SenderService,
 		conversationService:          deps.ConversationService,
+		exerciseRepository:           deps.ExerciseRepository,
 		userRepository:               deps.UserRepository,
 		userProgramRepository:        deps.UserProgramRepository,
 		userExerciseRecordRepository: deps.UserExerciseRecordRepository,
@@ -72,22 +74,27 @@ func (h *userHandler) Handle(ctx context.Context, b *tg_bot.Bot, update *tg_mode
 		return
 	}
 
-	if strings.HasPrefix(callBackQueryData, callback_data.UserResultModifyList) {
+	if strings.HasPrefix(callBackQueryData, callback_data.UserResultModifyExerciseList) {
 		h.resultModifyList(ctx, b)
 		return
 	}
 
-	if strings.HasPrefix(callBackQueryData, callback_data.UserResultModifySelected) {
-		h.resultModifySelected(ctx, b)
+	if strings.HasPrefix(callBackQueryData, callback_data.UserResultModifyExerciseSelected) {
+		h.resultModifyExerciseSelected(ctx, b)
+		return
+	}
+
+	if strings.HasPrefix(callBackQueryData, callback_data.UserResultModifyExerciseRepsModify) {
+		h.resultModifyExerciseRepsSelected(ctx, b)
 		return
 	}
 }
 
 func (h *userHandler) programList(ctx context.Context, b *tg_bot.Bot) {
-	chatId := utils_context2.GetChatIdFromContext(ctx)
-	user := utils_context2.GetCurrentUserFromContext(ctx)
-	limit := utils_context2.GetLimitFromContext(ctx)
-	offset := utils_context2.GetOffsetFromContext(ctx)
+	chatId := utils_context.GetChatIdFromContext(ctx)
+	user := utils_context.GetCurrentUserFromContext(ctx)
+	limit := utils_context.GetLimitFromContext(ctx)
+	offset := utils_context.GetOffsetFromContext(ctx)
 
 	programs := h.userProgramRepository.GetByUserId(ctx, user.Id, limit, offset)
 
@@ -108,9 +115,9 @@ func (h *userHandler) programList(ctx context.Context, b *tg_bot.Bot) {
 }
 
 func (h *userHandler) programSelected(ctx context.Context, b *tg_bot.Bot) {
-	chatId := utils_context2.GetChatIdFromContext(ctx)
-	user := utils_context2.GetCurrentUserFromContext(ctx)
-	userProgram := utils_context2.GetUserProgramFromContext(ctx)
+	chatId := utils_context.GetChatIdFromContext(ctx)
+	user := utils_context.GetCurrentUserFromContext(ctx)
+	userProgram := utils_context.GetUserProgramFromContext(ctx)
 
 	if userProgram.UserId != user.Id {
 		h.logger.Error(fmt.Sprintf("Program %d is not assigned for user %d", userProgram.Id, user.Id))
@@ -127,9 +134,9 @@ func (h *userHandler) programSelected(ctx context.Context, b *tg_bot.Bot) {
 }
 
 func (h *userHandler) resultList(ctx context.Context, b *tg_bot.Bot) {
-	chatId := utils_context2.GetChatIdFromContext(ctx)
-	user := utils_context2.GetCurrentUserFromContext(ctx)
-	userProgram := utils_context2.GetUserProgramFromContext(ctx)
+	chatId := utils_context.GetChatIdFromContext(ctx)
+	user := utils_context.GetCurrentUserFromContext(ctx)
+	userProgram := utils_context.GetUserProgramFromContext(ctx)
 
 	if userProgram.UserId != user.Id {
 		h.logger.Error(fmt.Sprintf("Program %d is not assigned for user %d", userProgram.Id, user.Id))
@@ -154,11 +161,11 @@ func (h *userHandler) resultList(ctx context.Context, b *tg_bot.Bot) {
 }
 
 func (h *userHandler) resultModifyList(ctx context.Context, b *tg_bot.Bot) {
-	chatId := utils_context2.GetChatIdFromContext(ctx)
-	user := utils_context2.GetCurrentUserFromContext(ctx)
-	userProgram := utils_context2.GetUserProgramFromContext(ctx)
-	limit := utils_context2.GetLimitFromContext(ctx)
-	offset := utils_context2.GetOffsetFromContext(ctx)
+	chatId := utils_context.GetChatIdFromContext(ctx)
+	user := utils_context.GetCurrentUserFromContext(ctx)
+	userProgram := utils_context.GetUserProgramFromContext(ctx)
+	limit := utils_context.GetLimitFromContext(ctx)
+	offset := utils_context.GetOffsetFromContext(ctx)
 
 	if userProgram.UserId != user.Id {
 		h.logger.Error(fmt.Sprintf("Program %d is not assigned for user %d", userProgram.Id, user.Id))
@@ -168,26 +175,26 @@ func (h *userHandler) resultModifyList(ctx context.Context, b *tg_bot.Bot) {
 		return
 	}
 
-	records := h.userExerciseRecordRepository.GetByUserProgramId(ctx, userProgram.Id, limit, offset)
+	exercises := h.exerciseRepository.GetByProgramId(ctx, userProgram.ProgramId, limit, offset)
 
-	if len(records) == 0 {
-		msg := messages.NoRecordsForUserProgramMessage(userProgram.Name())
+	if len(exercises) == 0 {
+		msg := messages.NoExercisesMessage(userProgram.Name())
 		kb := inline_keyboards.UserProgramMenuOk(userProgram.Id)
 		h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 		return
 	}
 
-	recordsCount := h.userExerciseRecordRepository.CountAllByUserProgramId(ctx, userProgram.Id)
+	exercisesCount := h.exerciseRepository.CountByProgramId(ctx, userProgram.ProgramId)
 
-	msg := messages.UserProgramResultsModifyMessage(userProgram.Name())
+	msg := messages.UserProgramResultsSelectExerciseMessage(userProgram.Name())
 
-	kb := inline_keyboards.UserProgramResultsModifyList(records, recordsCount, limit, offset)
+	kb := inline_keyboards.UserProgramResultsModifyExerciseList(userProgram.Id, exercises, exercisesCount, limit, offset)
 
 	h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 }
 
 func (h *userHandler) getWeight(ctx context.Context, b *tg_bot.Bot) int {
-	chatId := utils_context2.GetChatIdFromContext(ctx)
+	chatId := utils_context.GetChatIdFromContext(ctx)
 
 	conversation := h.conversationService.CreateConversation(chatId)
 	defer h.conversationService.DeleteConversation(chatId)
@@ -204,11 +211,33 @@ func (h *userHandler) getWeight(ctx context.Context, b *tg_bot.Bot) int {
 	return weight
 }
 
-func (h *userHandler) resultModifySelected(ctx context.Context, b *tg_bot.Bot) {
-	chatId := utils_context2.GetChatIdFromContext(ctx)
-	record := utils_context2.GetUserExerciseRecordFromContext(ctx)
+func (h *userHandler) resultModifyExerciseSelected(ctx context.Context, b *tg_bot.Bot) {
+	chatId := utils_context.GetChatIdFromContext(ctx)
+	userProgram := utils_context.GetUserProgramFromContext(ctx)
+	exercise := utils_context.GetExerciseFromContext(ctx)
 
-	resultMsgId := h.senderService.SendSafe(ctx, b, chatId, messages.EnterUserResultMessage(record.Name()))
+	records := h.userExerciseRecordRepository.GetAllByUserProgramIdAndExerciseId(ctx, userProgram.Id, exercise.Id)
+
+	if len(records) == 0 {
+		msg := messages.NoRecordsForUserProgramMessage(userProgram.Name())
+		kb := inline_keyboards.UserProgramMenuOk(userProgram.Id)
+		h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
+		return
+	}
+
+	msg := messages.UserProgramResultExerciseSelectedMessage(exercise.Name)
+	kb := inline_keyboards.UserProgramResultModifyExerciseSelectedOk(records)
+
+	h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
+}
+
+func (h *userHandler) resultModifyExerciseRepsSelected(ctx context.Context, b *tg_bot.Bot) {
+	chatId := utils_context.GetChatIdFromContext(ctx)
+	record := utils_context.GetUserExerciseRecordFromContext(ctx)
+
+	userMsg := messages.EnterUserResultMessage(record.Name())
+
+	userMsgId := h.senderService.SendSafe(ctx, b, chatId, userMsg)
 
 	weight := h.getWeight(ctx, b)
 
@@ -216,8 +245,8 @@ func (h *userHandler) resultModifySelected(ctx context.Context, b *tg_bot.Bot) {
 		Weight: weight,
 	})
 
-	msg := messages.UserProgramResultModifiedMessage(record.Name())
+	msg := messages.UserProgramResultModifiedMessage(record.Name(), record.Reps)
 	kb := inline_keyboards.UserProgramMenuOk(record.UserProgramId)
-	h.senderService.Delete(ctx, b, chatId, resultMsgId)
+	h.senderService.Delete(ctx, b, chatId, userMsgId)
 	h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 }

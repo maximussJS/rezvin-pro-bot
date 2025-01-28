@@ -72,16 +72,16 @@ func UserProgramResultsMessage(programName string, records []models.UserExercise
 	return sb.String()
 }
 
-func UserProgramResultsModifyMessage(programName string) string {
-	return fmt.Sprintf("Вибери запис для редагування результатів програми \"*%s*\"\\:", utils.EscapeMarkdown(programName))
+func UserProgramResultsSelectExerciseMessage(programName string) string {
+	return fmt.Sprintf("Вибери вправу з програми \"*%s*\", яку ти хочеш відредагувати:", utils.EscapeMarkdown(programName))
 }
 
 func EnterUserResultMessage(exerciseName string) string {
 	return fmt.Sprintf("Введи результат для вправи \"*%s*\"\\:", utils.EscapeMarkdown(exerciseName))
 }
 
-func UserProgramResultModifiedMessage(exerciseName string) string {
-	return fmt.Sprintf("Результати вправи \"*%s*\" успішно змінено\\.", utils.EscapeMarkdown(exerciseName))
+func UserProgramResultModifiedMessage(exerciseName string, reps uint) string {
+	return fmt.Sprintf("Результати вправи \"*%s*\"на %d повторень успішно змінено\\.", utils.EscapeMarkdown(exerciseName), reps)
 }
 
 func UserProgramAssignedMessage(programName string) string {
@@ -90,4 +90,8 @@ func UserProgramAssignedMessage(programName string) string {
 
 func UserProgramUnassignedMessage(programName string) string {
 	return fmt.Sprintf("%s відмінив тобі програму \"*%s*\"\\.", constants.AdminName, utils.EscapeMarkdown(programName))
+}
+
+func UserProgramResultExerciseSelectedMessage(exerciseName string) string {
+	return fmt.Sprintf("Вибери кількість повторень вправи \"*%s*\" ,результат яких потрібно змінити \\.", utils.EscapeMarkdown(exerciseName))
 }

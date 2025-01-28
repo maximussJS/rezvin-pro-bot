@@ -2,6 +2,7 @@ package bot
 
 import (
 	"fmt"
+	"rezvin-pro-bot/src/constants"
 	"rezvin-pro-bot/src/types"
 	"strconv"
 	"strings"
@@ -43,6 +44,9 @@ func AddParamsToQueryString(prefix string, params *types.Params) string {
 	}
 	if params.Offset != 0 {
 		paramPairs = append(paramPairs, fmt.Sprintf("o=%d", params.Offset))
+	}
+	if params.Reps != constants.Zero {
+		paramPairs = append(paramPairs, fmt.Sprintf("r=%d", params.Reps))
 	}
 
 	if len(paramPairs) == 0 {
@@ -125,6 +129,12 @@ func ParseParamsFromQueryString(queryStr string) (*types.Params, error) {
 				return nil, fmt.Errorf("invalid offset: %v", err)
 			}
 			params.Offset = parsedValue
+		case "r":
+			parsedValue, err := strconv.Atoi(value)
+			if err != nil {
+				return nil, fmt.Errorf("invalid reps: %v", err)
+			}
+			params.Reps = constants.Reps(parsedValue)
 		default:
 			return nil, fmt.Errorf("unknown key: %s", key)
 		}

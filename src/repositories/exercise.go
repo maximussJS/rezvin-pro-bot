@@ -66,6 +66,16 @@ func (r *exerciseRepository) GetById(ctx context.Context, id uint) *models.Exerc
 	return &exercise
 }
 
+func (r *exerciseRepository) GetAllByProgramId(ctx context.Context, programId uint) []models.Exercise {
+	var exercises []models.Exercise
+
+	err := r.db.WithContext(ctx).Where("program_id = ?", programId).Find(&exercises).Error
+
+	utils2.PanicIfNotContextError(err)
+
+	return exercises
+}
+
 func (r *exerciseRepository) GetByProgramId(ctx context.Context, programId uint, limit, offset int) []models.Exercise {
 	var exercises []models.Exercise
 

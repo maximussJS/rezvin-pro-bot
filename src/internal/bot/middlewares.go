@@ -5,11 +5,12 @@ import (
 	"fmt"
 	tg_bot "github.com/go-telegram/bot"
 	tg_models "github.com/go-telegram/bot/models"
+	"rezvin-pro-bot/src/constants"
 	"rezvin-pro-bot/src/models"
-	bot2 "rezvin-pro-bot/src/utils/bot"
-	utils_context2 "rezvin-pro-bot/src/utils/context"
+	bot_utils "rezvin-pro-bot/src/utils/bot"
+	utils_context "rezvin-pro-bot/src/utils/context"
 	"rezvin-pro-bot/src/utils/inline_keyboards"
-	messages2 "rezvin-pro-bot/src/utils/messages"
+	"rezvin-pro-bot/src/utils/messages"
 	"runtime"
 )
 
@@ -18,11 +19,11 @@ func (bot *bot) answerCallbackQueryMiddleware(next tg_bot.HandlerFunc) tg_bot.Ha
 		answerResult := bot.senderService.AnswerCallbackQuery(ctx, b, update)
 
 		if !answerResult {
-			chatId := utils_context2.GetChatIdFromContext(ctx)
+			chatId := utils_context.GetChatIdFromContext(ctx)
 
 			bot.logger.Error(fmt.Sprintf("Failed to answer callback query: %s", update.CallbackQuery.ID))
 
-			msg := messages2.ErrorMessage()
+			msg := messages.ErrorMessage()
 			kb := inline_keyboards.StartOk()
 
 			bot.senderService.SendWithKb(ctx, b, chatId, msg, kb)
@@ -35,50 +36,50 @@ func (bot *bot) answerCallbackQueryMiddleware(next tg_bot.HandlerFunc) tg_bot.Ha
 
 func (bot *bot) isRegisteredMiddleware(next tg_bot.HandlerFunc) tg_bot.HandlerFunc {
 	return func(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
-		userId := bot2.GetUserID(update)
+		userId := bot_utils.GetUserID(update)
 
 		user := bot.userRepository.GetById(ctx, userId)
 
 		if user == nil {
-			chatId := utils_context2.GetChatIdFromContext(ctx)
-			firstName := bot2.GetFirstName(update)
-			lastName := bot2.GetLastName(update)
+			chatId := utils_context.GetChatIdFromContext(ctx)
+			firstName := bot_utils.GetFirstName(update)
+			lastName := bot_utils.GetLastName(update)
 
 			name := fmt.Sprintf("%s %s", firstName, lastName)
 
-			msg := messages2.NeedRegister(name)
+			msg := messages.NeedRegister(name)
 			kb := inline_keyboards.UserRegister()
 			bot.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 			return
 		}
 
-		next(utils_context2.GetContextWithCurrentUser(ctx, user), b, update)
+		next(utils_context.GetContextWithCurrentUser(ctx, user), b, update)
 	}
 }
 
 func (bot *bot) isApprovedMiddleware(next tg_bot.HandlerFunc) tg_bot.HandlerFunc {
 	return func(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
-		user := utils_context2.GetCurrentUserFromContext(ctx)
+		user := utils_context.GetCurrentUserFromContext(ctx)
 
 		if user.IsNotApproved() {
-			chatId := utils_context2.GetChatIdFromContext(ctx)
+			chatId := utils_context.GetChatIdFromContext(ctx)
 
-			bot.senderService.Send(ctx, b, chatId, messages2.UserNotApprovedMessage())
+			bot.senderService.Send(ctx, b, chatId, messages.UserNotApprovedMessage())
 			return
 		}
 
-		next(utils_context2.GetContextWithCurrentUser(ctx, user), b, update)
+		next(utils_context.GetContextWithCurrentUser(ctx, user), b, update)
 	}
 }
 
 func (bot *bot) isAdminMiddleware(next tg_bot.HandlerFunc) tg_bot.HandlerFunc {
 	return func(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
-		user := utils_context2.GetCurrentUserFromContext(ctx)
+		user := utils_context.GetCurrentUserFromContext(ctx)
 
 		if user.IsNotAdmin() {
-			chatId := utils_context2.GetChatIdFromContext(ctx)
+			chatId := utils_context.GetChatIdFromContext(ctx)
 
-			bot.senderService.Send(ctx, b, chatId, messages2.AdminOnlyMessage())
+			bot.senderService.Send(ctx, b, chatId, messages.AdminOnlyMessage())
 			return
 		}
 
@@ -88,8 +89,8 @@ func (bot *bot) isAdminMiddleware(next tg_bot.HandlerFunc) tg_bot.HandlerFunc {
 
 func (bot *bot) chatIdMiddleware(next tg_bot.HandlerFunc) tg_bot.HandlerFunc {
 	return func(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
-		chatId := bot2.GetChatID(update)
-		userId := bot2.GetUserID(update)
+		chatId := bot_utils.GetChatID(update)
+		userId := bot_utils.GetUserID(update)
 
 		user := bot.userRepository.GetById(ctx, userId)
 
@@ -100,20 +101,20 @@ func (bot *bot) chatIdMiddleware(next tg_bot.HandlerFunc) tg_bot.HandlerFunc {
 			})
 		}
 
-		next(utils_context2.GetContextWithChatId(ctx, chatId), b, update)
+		next(utils_context.GetContextWithChatId(ctx, chatId), b, update)
 	}
 }
 
 func (bot *bot) parseParamsMiddleware(next tg_bot.HandlerFunc) tg_bot.HandlerFunc {
 	return func(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
 		callbackQueryData := update.CallbackQuery.Data
-		chatId := utils_context2.GetChatIdFromContext(ctx)
+		chatId := utils_context.GetChatIdFromContext(ctx)
 
-		params, err := bot2.ParseParamsFromQueryString(callbackQueryData)
+		params, err := bot_utils.ParseParamsFromQueryString(callbackQueryData)
 
 		if err != nil {
 			bot.logger.Error(fmt.Sprintf("Failed to parse params: %s", callbackQueryData))
-			msg := messages2.ParamsErrorMessage(err)
+			msg := messages.ParamsErrorMessage(err)
 			kb := inline_keyboards.StartOk()
 
 			bot.senderService.SendWithKb(ctx, b, chatId, msg, kb)
@@ -122,21 +123,21 @@ func (bot *bot) parseParamsMiddleware(next tg_bot.HandlerFunc) tg_bot.HandlerFun
 
 		if params == nil {
 			bot.logger.Error(fmt.Sprintf("Failed to parse params: %s", update.Message.Text))
-			msg := messages2.ErrorMessage()
+			msg := messages.ErrorMessage()
 			kb := inline_keyboards.StartOk()
 
 			bot.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 			return
 		}
 
-		next(utils_context2.GetContextWithParams(ctx, params), b, update)
+		next(utils_context.GetContextWithParams(ctx, params), b, update)
 	}
 }
 
 func (bot *bot) validateParamsMiddleware(next tg_bot.HandlerFunc) tg_bot.HandlerFunc {
 	return func(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
-		chatId := utils_context2.GetChatIdFromContext(ctx)
-		params := utils_context2.GetParamsFromContext(ctx)
+		chatId := utils_context.GetChatIdFromContext(ctx)
+		params := utils_context.GetParamsFromContext(ctx)
 
 		newCtx := context.WithoutCancel(ctx)
 
@@ -144,84 +145,88 @@ func (bot *bot) validateParamsMiddleware(next tg_bot.HandlerFunc) tg_bot.Handler
 			user := bot.userRepository.GetById(ctx, params.UserId)
 
 			if user == nil {
-				msg := messages2.UserNotFoundMessage(params.UserId)
+				msg := messages.UserNotFoundMessage(params.UserId)
 				kb := inline_keyboards.StartOk()
 
 				bot.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 				return
 			}
 
-			newCtx = utils_context2.GetContextWithUser(newCtx, user)
+			newCtx = utils_context.GetContextWithUser(newCtx, user)
 		}
 
 		if params.ProgramId != 0 {
 			program := bot.programRepository.GetById(ctx, params.ProgramId)
 
 			if program == nil {
-				msg := messages2.ProgramNotFoundMessage(params.ProgramId)
+				msg := messages.ProgramNotFoundMessage(params.ProgramId)
 				kb := inline_keyboards.StartOk()
 
 				bot.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 				return
 			}
 
-			newCtx = utils_context2.GetContextWithProgram(newCtx, program)
+			newCtx = utils_context.GetContextWithProgram(newCtx, program)
 		}
 
 		if params.ExerciseId != 0 {
 			exercise := bot.exerciseRepository.GetById(ctx, params.ExerciseId)
 
 			if exercise == nil {
-				msg := messages2.ExerciseNotFoundMessage(params.ExerciseId)
+				msg := messages.ExerciseNotFoundMessage(params.ExerciseId)
 				kb := inline_keyboards.StartOk()
 
 				bot.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 				return
 			}
 
-			newCtx = utils_context2.GetContextWithExercise(newCtx, exercise)
+			newCtx = utils_context.GetContextWithExercise(newCtx, exercise)
 		}
 
 		if params.UserProgramId != 0 {
 			userProgram := bot.userProgramRepository.GetById(ctx, params.UserProgramId)
 
 			if userProgram == nil {
-				msg := messages2.ClientProgramNotFoundMessage(params.UserProgramId)
+				msg := messages.ClientProgramNotFoundMessage(params.UserProgramId)
 				kb := inline_keyboards.StartOk()
 
 				bot.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 				return
 			}
 
-			newCtx = utils_context2.GetContextWithUserProgram(newCtx, userProgram)
+			newCtx = utils_context.GetContextWithUserProgram(newCtx, userProgram)
 		}
 
 		if params.UserExerciseRecordId != 0 {
 			record := bot.userExerciseRecordRepository.GetById(ctx, params.UserExerciseRecordId)
 
 			if record == nil {
-				msg := messages2.ClientExerciseRecordNotFoundMessage(params.UserExerciseRecordId)
+				msg := messages.ClientExerciseRecordNotFoundMessage(params.UserExerciseRecordId)
 				kb := inline_keyboards.StartOk()
 
 				bot.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 				return
 			}
 
-			newCtx = utils_context2.GetContextWithUserExerciseRecord(newCtx, record)
+			newCtx = utils_context.GetContextWithUserExerciseRecord(newCtx, record)
+		}
+
+		if params.Reps != constants.Zero {
+			newCtx = utils_context.GetContextWithReps(newCtx, params.Reps)
 		}
 
 		if params.Limit != 0 {
-			newCtx = utils_context2.GetContextWithLimit(newCtx, params.Limit)
+			newCtx = utils_context.GetContextWithLimit(newCtx, params.Limit)
 		}
 
-		next(utils_context2.GetContextWithOffset(newCtx, params.Offset), b, update)
+		next(utils_context.GetContextWithOffset(newCtx, params.Offset), b, update)
 	}
 }
 
 func (bot *bot) timeoutMiddleware(next tg_bot.HandlerFunc) tg_bot.HandlerFunc {
 	return func(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
 		timeoutDuration := bot.config.RequestTimeout()
-		chatId := utils_context2.GetChatIdFromContext(ctx)
+		chatId := utils_context.GetChatIdFromContext(ctx)
 
 		childCtx, cancel := context.WithTimeout(ctx, timeoutDuration)
 		defer cancel()
@@ -235,7 +240,7 @@ func (bot *bot) timeoutMiddleware(next tg_bot.HandlerFunc) tg_bot.HandlerFunc {
 
 		select {
 		case <-childCtx.Done():
-			bot.senderService.Send(ctx, b, chatId, messages2.RequestTimeoutMessage())
+			bot.senderService.Send(ctx, b, chatId, messages.RequestTimeoutMessage())
 			return
 		case <-doneCh:
 			return
@@ -247,7 +252,7 @@ func (bot *bot) panicRecoveryMiddleware(next tg_bot.HandlerFunc) tg_bot.HandlerF
 	return func(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
 		defer func() {
 			if err := recover(); err != nil {
-				chatID := bot2.GetChatID(update)
+				chatID := bot_utils.GetChatID(update)
 				stackSize := bot.config.ErrorStackTraceSizeInKb() * 1024
 				stack := make([]byte, stackSize)
 				length := runtime.Stack(stack, true)
@@ -261,7 +266,7 @@ func (bot *bot) panicRecoveryMiddleware(next tg_bot.HandlerFunc) tg_bot.HandlerF
 
 				b.SendMessage(ctx, &tg_bot.SendMessageParams{
 					ChatID:    chatID,
-					Text:      messages2.ErrorMessage(),
+					Text:      messages.ErrorMessage(),
 					ParseMode: tg_models.ParseModeMarkdown,
 				})
 			}

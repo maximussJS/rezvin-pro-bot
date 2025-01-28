@@ -13,6 +13,7 @@ type Params struct {
 	UserExerciseRecordId uint
 	Limit                int
 	Offset               int
+	Reps                 constants.Reps
 }
 
 func NewEmptyParams() *Params {
@@ -24,6 +25,7 @@ func NewEmptyParams() *Params {
 		UserExerciseRecordId: 0,
 		Limit:                constants.DefaultLimit,
 		Offset:               constants.DefaultOffset,
+		Reps:                 constants.Zero,
 	}
 }
 
