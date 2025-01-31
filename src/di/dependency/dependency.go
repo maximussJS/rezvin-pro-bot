@@ -1,4 +1,4 @@
-package di
+package dependency
 
 type Dependency struct {
 	Constructor interface{}

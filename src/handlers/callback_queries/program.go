@@ -96,6 +96,11 @@ func (h *programHandler) getProgramName(ctx context.Context, b *tg_bot.Bot) stri
 
 	programName := conversation.WaitAnswer()
 
+	if strings.TrimSpace(programName) == "" {
+		h.senderService.Send(ctx, b, chatId, messages.EmptyMessage())
+		return h.getProgramName(ctx, b)
+	}
+
 	existingProgram := h.programRepository.GetByName(ctx, programName)
 
 	if existingProgram != nil {

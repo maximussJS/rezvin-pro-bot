@@ -8,7 +8,6 @@ import (
 	services2 "rezvin-pro-bot/src/services"
 	"rezvin-pro-bot/src/utils/context"
 	"rezvin-pro-bot/src/utils/messages"
-	"strings"
 )
 
 type IDefaultHandler interface {
@@ -39,11 +38,6 @@ func (h *defaultHandler) Handle(ctx context.Context, b *tg_bot.Bot, update *mode
 
 	if h.conversationService.IsConversationExists(chatId) {
 		conversation := h.conversationService.GetConversation(chatId)
-
-		if strings.TrimSpace(update.Message.Text) == "" {
-			h.senderService.Send(ctx, b, chatId, messages.EmptyMessage())
-			return
-		}
 
 		conversation.Answer(update.Message.Text)
 		return

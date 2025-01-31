@@ -111,25 +111,29 @@ func (s *senderService) SendSafe(ctx context.Context, b *tg_bot.Bot, chatId int6
 func (s *senderService) send(ctx context.Context, b *tg_bot.Bot, params *tg_bot.SendMessageParams, safe bool) int {
 	chatId := params.ChatID.(int64)
 
-	lastMsg := s.lastMessageRepository.GetByChatId(ctx, chatId)
+	if !safe {
+		lastMsg := s.lastMessageRepository.GetByChatId(ctx, chatId)
 
-	if lastMsg != nil && !safe {
-		ok, err := b.DeleteMessage(ctx, &tg_bot.DeleteMessageParams{
-			ChatID:    chatId,
-			MessageID: lastMsg.MessageId,
-		})
+		if lastMsg != nil {
+			ok, err := b.DeleteMessage(ctx, &tg_bot.DeleteMessageParams{
+				ChatID:    chatId,
+				MessageID: lastMsg.MessageId,
+			})
 
-		if err != nil || !ok {
-			s.logger.Error(err.Error())
-			s.lastMessageRepository.DeleteByChatId(ctx, chatId)
+			if err != nil || !ok {
+				s.logger.Error(err.Error())
+				s.lastMessageRepository.DeleteByChatId(ctx, chatId)
+			}
 		}
 	}
 
 	msg, err := b.SendMessage(ctx, params)
 
-	utils.PanicIfError(err)
+	utils.PanicIfNotContextError(err)
 
 	if !safe {
+		lastMsg := s.lastMessageRepository.GetByChatId(ctx, chatId)
+
 		if lastMsg == nil {
 			s.lastMessageRepository.Create(ctx, models.LastUserMessage{
 				ChatId:    chatId,

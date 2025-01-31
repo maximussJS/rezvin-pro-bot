@@ -3,9 +3,7 @@ package bot
 import (
 	"fmt"
 	"github.com/go-telegram/bot/models"
-	"rezvin-pro-bot/src/utils"
-	"strconv"
-	"strings"
+	"time"
 )
 
 func GetUserID(update *models.Update) int64 {
@@ -18,6 +16,18 @@ func GetUserID(update *models.Update) int64 {
 	}
 
 	panic(fmt.Sprintf("unable to get user id from update: %v", update))
+}
+
+func GetMessageID(update *models.Update) int {
+	if update.Message != nil {
+		return update.Message.ID
+	}
+
+	if update.CallbackQuery != nil {
+		return update.CallbackQuery.Message.Message.ID
+	}
+
+	panic(fmt.Sprintf("unable to get message id from update: %v", update))
 }
 
 func GetChatID(update *models.Update) int64 {
@@ -68,58 +78,14 @@ func GetUsername(update *models.Update) string {
 	panic(fmt.Sprintf("unable to get username from update: %v", update))
 }
 
-func GetProgramId(update *models.Update) uint {
-	if update.CallbackQuery == nil {
-		panic(fmt.Sprintf("unable to get program id from update: %v", update))
+func GetUpdateTimestamp(update *models.Update) time.Time {
+	if update.Message != nil {
+		return time.Unix(int64(update.Message.Date), 0)
 	}
 
-	value := strings.Split(update.CallbackQuery.Data, ":")[1]
-
-	valueInt, err := strconv.Atoi(value)
-
-	utils.PanicIfError(err)
-
-	return uint(valueInt)
-}
-
-func GetSelectedUserId(update *models.Update) int64 {
-	if update.CallbackQuery == nil {
-		panic(fmt.Sprintf("unable to get program id from update: %v", update))
+	if update.CallbackQuery != nil {
+		return time.Unix(int64(update.CallbackQuery.Message.Message.Date), 0)
 	}
 
-	value := strings.Split(update.CallbackQuery.Data, ":")[1]
-
-	valueInt, err := strconv.Atoi(value)
-
-	utils.PanicIfError(err)
-
-	return int64(valueInt)
-}
-
-func GetClientProgramId(update *models.Update) uint {
-	if update.CallbackQuery == nil {
-		panic(fmt.Sprintf("unable to get program id from update: %v", update))
-	}
-
-	value := strings.Split(update.CallbackQuery.Data, ":")[2]
-
-	valueInt, err := strconv.Atoi(value)
-
-	utils.PanicIfError(err)
-
-	return uint(valueInt)
-}
-
-func GetExerciseId(update *models.Update) uint {
-	if update.CallbackQuery == nil {
-		panic(fmt.Sprintf("unable to get exercise id from update: %v", update))
-	}
-
-	value := strings.Split(update.CallbackQuery.Data, ":")[2]
-
-	valueInt, err := strconv.Atoi(value)
-
-	utils.PanicIfError(err)
-
-	return uint(valueInt)
+	panic(fmt.Sprintf("unable to get update timestamp from update: %v", update))
 }

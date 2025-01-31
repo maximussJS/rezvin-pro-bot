@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	di2 "rezvin-pro-bot/src/di"
+	"rezvin-pro-bot/src/di/dependency"
 	"rezvin-pro-bot/src/internal/bot"
 	"rezvin-pro-bot/src/utils"
 	"sync"
@@ -35,7 +36,7 @@ func main() {
 
 	container := di2.BuildContainer()
 
-	container = di2.AppendDependenciesToContainer(container, []di2.Dependency{
+	container = di2.AppendDependenciesToContainer(container, []dependency.Dependency{
 		{
 			Constructor: func() context.Context {
 				return shutdownContext

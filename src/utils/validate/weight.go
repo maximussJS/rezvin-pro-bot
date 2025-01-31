@@ -3,6 +3,7 @@ package validate_data
 import (
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 func ValidateWeightAnswer(text string) (int, error) {
@@ -17,4 +18,12 @@ func ValidateWeightAnswer(text string) (int, error) {
 	}
 
 	return weight, nil
+}
+
+func ValidateStringAnswer(text string) (string, error) {
+	if strings.TrimSpace(text) == "" {
+		return "", fmt.Errorf("введіть текст")
+	}
+
+	return text, nil
 }

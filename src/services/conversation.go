@@ -9,7 +9,7 @@ import (
 
 type IConversationService interface {
 	CreateConversation(chatId int64) *conversation
-	IsConversationExists(userId int64) bool
+	IsConversationExists(chatId int64) bool
 	GetConversation(chatId int64) *conversation
 	DeleteConversation(chatId int64)
 }

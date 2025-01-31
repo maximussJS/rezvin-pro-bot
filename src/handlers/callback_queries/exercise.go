@@ -88,6 +88,11 @@ func (h *exerciseHandler) getExerciseName(ctx context.Context, b *tg_bot.Bot, pr
 
 	exerciseName := conversation.WaitAnswer()
 
+	if strings.TrimSpace(exerciseName) == "" {
+		h.senderService.Send(ctx, b, chatId, messages.EmptyMessage())
+		return h.getExerciseName(ctx, b, programId)
+	}
+
 	existingExercise := h.exerciseRepository.GetByNameAndProgramId(ctx, exerciseName, programId)
 
 	if existingExercise != nil {

@@ -15,6 +15,7 @@ type IConfig interface {
 	BotToken() string
 	WebhookSecretToken() string
 	RequestTimeout() time.Duration
+	AdminChatIds() []int64
 
 	ErrorStackTraceSizeInKb() int
 
@@ -122,4 +123,8 @@ func (c *config) RequestTimeout() time.Duration {
 
 func (c *config) HttpPort() string {
 	return c.httpPort
+}
+
+func (c *config) AdminChatIds() []int64 {
+	return []int64{345730740, 486965006}
 }

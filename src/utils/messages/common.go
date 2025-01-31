@@ -13,7 +13,7 @@ func ParamsErrorMessage(err error) string {
 }
 
 func RequestTimeoutMessage() string {
-	return "Час відповіді на запит вичерпано. Спробуйте ще раз."
+	return "Час відповіді на запит вичерпано\\. Спробуйте ще раз\\."
 }
 
 func DefaultMessage() string {
