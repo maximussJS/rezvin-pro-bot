@@ -111,22 +111,6 @@ func (s *senderService) SendSafe(ctx context.Context, b *tg_bot.Bot, chatId int6
 func (s *senderService) send(ctx context.Context, b *tg_bot.Bot, params *tg_bot.SendMessageParams, safe bool) int {
 	chatId := params.ChatID.(int64)
 
-	if !safe {
-		lastMsg := s.lastMessageRepository.GetByChatId(ctx, chatId)
-
-		if lastMsg != nil {
-			ok, err := b.DeleteMessage(ctx, &tg_bot.DeleteMessageParams{
-				ChatID:    chatId,
-				MessageID: lastMsg.MessageId,
-			})
-
-			if err != nil || !ok {
-				s.logger.Error(err.Error())
-				s.lastMessageRepository.DeleteByChatId(ctx, chatId)
-			}
-		}
-	}
-
 	msg, err := b.SendMessage(ctx, params)
 
 	utils.PanicIfNotContextError(err)
@@ -143,6 +127,16 @@ func (s *senderService) send(ctx context.Context, b *tg_bot.Bot, params *tg_bot.
 			s.lastMessageRepository.UpdateByChatId(ctx, chatId, models.LastUserMessage{
 				MessageId: msg.ID,
 			})
+
+			ok, err := b.DeleteMessage(ctx, &tg_bot.DeleteMessageParams{
+				ChatID:    chatId,
+				MessageID: lastMsg.MessageId,
+			})
+
+			if err != nil || !ok {
+				s.logger.Error(err.Error())
+				s.lastMessageRepository.DeleteByChatId(ctx, chatId)
+			}
 		}
 	}
 
