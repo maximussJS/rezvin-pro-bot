@@ -29,6 +29,7 @@ type backHandlerDependencies struct {
 
 	UserRepository    repositories.IUserRepository    `name:"UserRepository"`
 	ProgramRepository repositories.IProgramRepository `name:"ProgramRepository"`
+	MeasureRepository repositories.IMeasureRepository `name:"MeasureRepository"`
 }
 
 type backHandler struct {
@@ -36,6 +37,7 @@ type backHandler struct {
 	senderService     services.ISenderService
 	userRepository    repositories.IUserRepository
 	programRepository repositories.IProgramRepository
+	measureRepository repositories.IMeasureRepository
 }
 
 func NewBackHandler(deps backHandlerDependencies) *backHandler {
@@ -44,6 +46,7 @@ func NewBackHandler(deps backHandlerDependencies) *backHandler {
 		senderService:     deps.SenderService,
 		userRepository:    deps.UserRepository,
 		programRepository: deps.ProgramRepository,
+		measureRepository: deps.MeasureRepository,
 	}
 }
 
@@ -67,6 +70,11 @@ func (h *backHandler) Handle(ctx context.Context, b *tg_bot.Bot, update *tg_mode
 
 	if strings.HasPrefix(callBackQueryData, constants.BackToClientList) {
 		h.backToClientList(ctx, b)
+		return
+	}
+
+	if strings.HasPrefix(callBackQueryData, constants.BackToMeasureList) {
+		h.backToMeasureList(ctx, b)
 		return
 	}
 
@@ -100,6 +108,27 @@ func (h *backHandler) backToProgramList(ctx context.Context, b *tg_bot.Bot) {
 	kb := inline_keyboards.ProgramList(programs, programsCount, limit, offset)
 
 	h.senderService.SendWithKb(ctx, b, chatId, messages.SelectProgramMessage(), kb)
+}
+
+func (h *backHandler) backToMeasureList(ctx context.Context, b *tg_bot.Bot) {
+	chatId := utils_context.GetChatIdFromContext(ctx)
+	limit := utils_context.GetLimitFromContext(ctx)
+	offset := utils_context.GetOffsetFromContext(ctx)
+
+	measures := h.measureRepository.GetAll(ctx, limit, offset)
+
+	if len(measures) == 0 {
+		msg := messages.MeasuresNotFoundMessage()
+		kb := inline_keyboards.MeasureMenuOk()
+		h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
+		return
+	}
+
+	measuresCount := h.measureRepository.CountAll(ctx)
+
+	kb := inline_keyboards.MeasureList(measures, measuresCount, limit, offset)
+
+	h.senderService.SendWithKb(ctx, b, chatId, messages.SelectMeasureMessage(), kb)
 }
 
 func (h *backHandler) backToPendingUsersList(ctx context.Context, b *tg_bot.Bot) {

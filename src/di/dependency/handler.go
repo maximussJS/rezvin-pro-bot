@@ -72,5 +72,15 @@ func GetHandlersDependencies() []Dependency {
 			Interface:   new(cb_handlers.IMainHandler),
 			Token:       "MainHandler",
 		},
+		{
+			Constructor: cb_handlers.NewMeasureHandler,
+			Interface:   new(cb_handlers.IMeasureHandler),
+			Token:       "MeasureHandler",
+		},
+		{
+			Constructor: cb_handlers.NewClientMeasureHandler,
+			Interface:   new(cb_handlers.IClientMeasureHandler),
+			Token:       "ClientMeasureHandler",
+		},
 	}
 }

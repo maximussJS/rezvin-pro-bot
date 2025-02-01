@@ -51,7 +51,13 @@ func ClientSelectedMenu(clientId int64) *tg_models.InlineKeyboardMarkup {
 				{Text: "📋 Дивитись програми клієнта", CallbackData: bot_utils.AddParamsToQueryString(constants.ClientProgramList, params)},
 			},
 			{
+				{Text: "📏 Дивитись заміри клієнта", CallbackData: bot_utils.AddParamsToQueryString(constants.ClientMeasureList, params)},
+			},
+			{
 				{Text: "➕ Додати програму для клієнта", CallbackData: bot_utils.AddParamsToQueryString(constants.ClientProgramAdd, params)},
+			},
+			{
+				{Text: "➕ Додати заміри клієнта", CallbackData: bot_utils.AddParamsToQueryString(constants.ClientMeasureAdd, params)},
 			},
 			{
 				{Text: "🔙 Назад", CallbackData: constants.BackToClientList},

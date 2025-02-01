@@ -48,6 +48,12 @@ variable "bot_token" {
   sensitive   = true
 }
 
+variable "alert_chat_id" {
+    description = "Chat ID for sending alerts"
+    type        = string
+    sensitive   = true
+}
+
 variable "postgres_dsn" {
   description = "PostgreSQL Data Source Name containing connection details"
   type        = string

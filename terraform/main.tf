@@ -113,6 +113,7 @@ resource "null_resource" "docker_setup" {
       "  --env SSL_CERT_PATH='${replace(var.ssl_cert_path, "'", "\\'")}' \\",
       "  --env SSL_KEY_PATH='${replace(var.ssl_key_path, "'", "\\'")}' \\",
       "  --env BOT_TOKEN='${replace(var.bot_token, "'", "\\'")}' \\",
+      "  --env ALERT_CHAT_ID='${replace(var.alert_chat_id, "'", "\\'")}' \\",
       "  --env WEBHOOK_SECRET_TOKEN='${replace(var.webhook_secret_token, "'", "\\'")}' \\",
       "  --env HTTP_PORT='${replace(var.http_port, "'", "\\'")}' \\",
       "  --env RUN_MIGRATIONS='${replace(var.run_migrations, "'", "\\'")}' \\",

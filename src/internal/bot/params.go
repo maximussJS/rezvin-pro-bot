@@ -118,6 +118,34 @@ func (bot *bot) validateParamsMiddleware(next tg_bot.HandlerFunc) tg_bot.Handler
 			newCtx = utils_context.GetContextWithUserResult(newCtx, record)
 		}
 
+		if params.MeasureId != 0 {
+			measure := bot.measureRepository.GetById(ctx, params.MeasureId)
+
+			if measure == nil {
+				msg := messages.MeasureNotFoundMessage(params.MeasureId)
+				kb := inline_keyboards.StartOk()
+
+				bot.senderService.SendWithKb(ctx, b, chatId, msg, kb)
+				return
+			}
+
+			newCtx = utils_context.GetContextWithMeasure(newCtx, measure)
+		}
+
+		if params.UserMeasureId != 0 {
+			userMeasure := bot.userMeasureRepository.GetById(ctx, params.UserMeasureId)
+
+			if userMeasure == nil {
+				msg := messages.ClientMeasureNotFoundMessage(params.UserMeasureId)
+				kb := inline_keyboards.StartOk()
+
+				bot.senderService.SendWithKb(ctx, b, chatId, msg, kb)
+				return
+			}
+
+			newCtx = utils_context.GetContextWithUserMeasure(newCtx, userMeasure)
+		}
+
 		if params.Reps != constants.Zero {
 			newCtx = utils_context.GetContextWithReps(newCtx, params.Reps)
 		}

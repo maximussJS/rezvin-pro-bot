@@ -40,9 +40,11 @@ func (bot *bot) registerHandlers() {
 
 	bot.registerCallbackQueryByPrefix(constants.ProgramPrefix, bot.programHandler.Handle, bot.adminMiddlewares())
 	bot.registerCallbackQueryByPrefix(constants.ExercisePrefix, bot.exerciseHandler.Handle, bot.adminMiddlewares())
+	bot.registerCallbackQueryByPrefix(constants.MeasurePrefix, bot.measureHandler.Handle, bot.adminMiddlewares())
 	bot.registerCallbackQueryByPrefix(constants.PendingUsersPrefix, bot.pendingUsersHandler.Handle, bot.adminMiddlewares())
 	bot.registerCallbackQueryByPrefix(constants.BackPrefix, bot.backHandler.Handle, bot.adminMiddlewares())
 	bot.registerCallbackQueryByPrefix(constants.ClientPrefix, bot.clientHandler.Handle, bot.adminMiddlewares())
 	bot.registerCallbackQueryByPrefix(constants.ClientProgramPrefix, bot.clientProgramHandler.Handle, bot.adminMiddlewares())
 	bot.registerCallbackQueryByPrefix(constants.ClientResultPrefix, bot.clientResultHandler.Handle, bot.adminMiddlewares())
+	bot.registerCallbackQueryByPrefix(constants.ClientMeasurePrefix, bot.clientMeasureHandler.Handle, bot.adminMiddlewares())
 }

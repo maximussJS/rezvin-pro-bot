@@ -39,6 +39,12 @@ func AddParamsToQueryString(prefix string, params *types.Params) string {
 	if params.UserResultId != 0 {
 		paramPairs = append(paramPairs, fmt.Sprintf("urid=%d", params.UserResultId))
 	}
+	if params.MeasureId != 0 {
+		paramPairs = append(paramPairs, fmt.Sprintf("mid=%d", params.MeasureId))
+	}
+	if params.UserMeasureId != 0 {
+		paramPairs = append(paramPairs, fmt.Sprintf("umid=%d", params.UserMeasureId))
+	}
 	if params.Limit != 0 {
 		paramPairs = append(paramPairs, fmt.Sprintf("l=%d", params.Limit))
 	}
@@ -117,6 +123,18 @@ func ParseParamsFromQueryString(queryStr string) (*types.Params, error) {
 				return nil, fmt.Errorf("invalid userResultId: %v", err)
 			}
 			params.UserResultId = uint(parsedValue)
+		case "mid":
+			parsedValue, err := strconv.ParseUint(value, 10, 32)
+			if err != nil {
+				return nil, fmt.Errorf("invalid measureId: %v", err)
+			}
+			params.MeasureId = uint(parsedValue)
+		case "umid":
+			parsedValue, err := strconv.ParseUint(value, 10, 32)
+			if err != nil {
+				return nil, fmt.Errorf("invalid userMeasureId: %v", err)
+			}
+			params.UserMeasureId = uint(parsedValue)
 		case "l":
 			parsedValue, err := strconv.Atoi(value)
 			if err != nil {

@@ -1,13 +1,14 @@
 package constants
 
 const (
-	MainPrefix      = "m"
-	MainBackToMain  = "mm"
-	MainBackToStart = "ms"
+	MainPrefix      = "ma"
+	MainBackToMain  = "mam"
+	MainBackToStart = "mas"
 
 	BackPrefix             = "b"
 	BackToProgramMenu      = "bpm"
 	BackToProgramList      = "bpl"
+	BackToMeasureList      = "bml"
 	BackToPendingUsersList = "bpul"
 	BackToClientList       = "bcl"
 
@@ -28,6 +29,11 @@ const (
 	ClientProgramAssign   = "cpan"
 	ClientProgramDelete   = "cpd"
 
+	ClientMeasurePrefix   = "cm"
+	ClientMeasureList     = "cml"
+	ClientMeasureSelected = "cms"
+	ClientMeasureAdd      = "cma"
+
 	ClientResultPrefix           = "cr"
 	ClientResultList             = "crl"
 	ClientResultExercisesList    = "crel"
@@ -41,6 +47,15 @@ const (
 	ProgramMenu     = "prm"
 	ProgramList     = "prl"
 	ProgramAdd      = "pra"
+
+	MeasurePrefix      = "me"
+	MeasureMenu        = "mem"
+	MeasureList        = "mel"
+	MeasureAdd         = "mea"
+	MeasureDelete      = "med"
+	MeasureRename      = "mer"
+	MeasureChangeUnits = "meu"
+	MeasureSelected    = "mes"
 
 	PendingUsersPrefix   = "pu"
 	PendingUsersList     = "pul"

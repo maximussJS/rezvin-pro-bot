@@ -13,6 +13,9 @@ func AdminMain() *tg_models.InlineKeyboardMarkup {
 				{Text: "📖 Програми", CallbackData: constants.ProgramMenu},
 			},
 			{
+				{Text: "⏱️ Заміри", CallbackData: constants.MeasureMenu},
+			},
+			{
 				{Text: "⏳ Підтвердження клієнтів", CallbackData: constants.PendingUsersList},
 			},
 			{

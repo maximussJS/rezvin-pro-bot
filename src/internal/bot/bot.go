@@ -34,11 +34,13 @@ type botDependencies struct {
 	RegisterHandler      callback_queries.IRegisterHandler      `name:"RegisterHandler"`
 	ProgramHandler       callback_queries.IProgramHandler       `name:"ProgramHandler"`
 	ExerciseHandler      callback_queries.IExerciseHandler      `name:"ExerciseHandler"`
+	MeasureHandler       callback_queries.IMeasureHandler       `name:"MeasureHandler"`
 	PendingUsersHandler  callback_queries.IPendingUsersHandler  `name:"PendingUsersHandler"`
 	BackHandler          callback_queries.IBackHandler          `name:"BackHandler"`
 	ClientHandler        callback_queries.IClientHandler        `name:"ClientHandler"`
 	ClientProgramHandler callback_queries.IClientProgramHandler `name:"ClientProgramHandler"`
 	ClientResultHandler  callback_queries.IClientResultHandler  `name:"ClientResultHandler"`
+	ClientMeasureHandler callback_queries.IClientMeasureHandler `name:"ClientMeasureHandler"`
 	UserResultHandler    callback_queries.IUserResultHandler    `name:"UserResultHandler"`
 	UserProgramHandler   callback_queries.IUserProgramHandler   `name:"UserProgramHandler"`
 	MainHandler          callback_queries.IMainHandler          `name:"MainHandler"`
@@ -46,8 +48,10 @@ type botDependencies struct {
 	UserRepository        repositories.IUserRepository        `name:"UserRepository"`
 	ProgramRepository     repositories.IProgramRepository     `name:"ProgramRepository"`
 	UserProgramRepository repositories.IUserProgramRepository `name:"UserProgramRepository"`
+	UserMeasureRepository repositories.IUserMeasureRepository `name:"UserMeasureRepository"`
 	UserResultRepository  repositories.IUserResultRepository  `name:"UserResultRepository"`
 	ExerciseRepository    repositories.IExerciseRepository    `name:"ExerciseRepository"`
+	MeasureRepository     repositories.IMeasureRepository     `name:"MeasureRepository"`
 }
 
 type bot struct {
@@ -66,11 +70,13 @@ type bot struct {
 	registerHandler      callback_queries.IRegisterHandler
 	programHandler       callback_queries.IProgramHandler
 	exerciseHandler      callback_queries.IExerciseHandler
+	measureHandler       callback_queries.IMeasureHandler
 	pendingUsersHandler  callback_queries.IPendingUsersHandler
 	backHandler          callback_queries.IBackHandler
 	clientHandler        callback_queries.IClientHandler
 	clientProgramHandler callback_queries.IClientProgramHandler
 	clientResultHandler  callback_queries.IClientResultHandler
+	clientMeasureHandler callback_queries.IClientMeasureHandler
 	userResultHandler    callback_queries.IUserResultHandler
 	userProgramHandler   callback_queries.IUserProgramHandler
 	mainHandler          callback_queries.IMainHandler
@@ -79,7 +85,9 @@ type bot struct {
 	programRepository     repositories.IProgramRepository
 	userProgramRepository repositories.IUserProgramRepository
 	userResultRepository  repositories.IUserResultRepository
+	userMeasureRepository repositories.IUserMeasureRepository
 	exerciseRepository    repositories.IExerciseRepository
+	measureRepository     repositories.IMeasureRepository
 }
 
 func NewBot(deps botDependencies) *bot {
@@ -96,6 +104,7 @@ func NewBot(deps botDependencies) *bot {
 		programHandler:       deps.ProgramHandler,
 		registerHandler:      deps.RegisterHandler,
 		exerciseHandler:      deps.ExerciseHandler,
+		measureHandler:       deps.MeasureHandler,
 		pendingUsersHandler:  deps.PendingUsersHandler,
 		backHandler:          deps.BackHandler,
 		userResultHandler:    deps.UserResultHandler,
@@ -104,12 +113,15 @@ func NewBot(deps botDependencies) *bot {
 		clientHandler:        deps.ClientHandler,
 		clientProgramHandler: deps.ClientProgramHandler,
 		clientResultHandler:  deps.ClientResultHandler,
+		clientMeasureHandler: deps.ClientMeasureHandler,
 
 		userRepository:        deps.UserRepository,
 		programRepository:     deps.ProgramRepository,
 		userProgramRepository: deps.UserProgramRepository,
 		userResultRepository:  deps.UserResultRepository,
+		userMeasureRepository: deps.UserMeasureRepository,
 		exerciseRepository:    deps.ExerciseRepository,
+		measureRepository:     deps.MeasureRepository,
 	}
 
 	opts := []tg_bot.Option{
