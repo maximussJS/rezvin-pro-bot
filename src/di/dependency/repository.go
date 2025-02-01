@@ -39,5 +39,10 @@ func GetRepositoriesDependencies() []Dependency {
 			Interface:   new(repositories.IMeasureRepository),
 			Token:       "MeasureRepository",
 		},
+		{
+			Constructor: repositories.NewUserMeasureRepository,
+			Interface:   new(repositories.IUserMeasureRepository),
+			Token:       "UserMeasureRepository",
+		},
 	}
 }
