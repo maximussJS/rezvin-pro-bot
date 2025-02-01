@@ -5,7 +5,7 @@ import (
 	tg_bot "github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 	"go.uber.org/dig"
-	services2 "rezvin-pro-bot/src/services"
+	"rezvin-pro-bot/src/services"
 	"rezvin-pro-bot/src/utils/context"
 	"rezvin-pro-bot/src/utils/messages"
 )
@@ -17,13 +17,13 @@ type IDefaultHandler interface {
 type defaultHandlerDependencies struct {
 	dig.In
 
-	SenderService       services2.ISenderService       `name:"SenderService"`
-	ConversationService services2.IConversationService `name:"ConversationService"`
+	SenderService       services.ISenderService       `name:"SenderService"`
+	ConversationService services.IConversationService `name:"ConversationService"`
 }
 
 type defaultHandler struct {
-	senderService       services2.ISenderService
-	conversationService services2.IConversationService
+	senderService       services.ISenderService
+	conversationService services.IConversationService
 }
 
 func NewDefaultHandler(deps defaultHandlerDependencies) *defaultHandler {

@@ -15,7 +15,7 @@ type IConfig interface {
 	BotToken() string
 	WebhookSecretToken() string
 	RequestTimeout() time.Duration
-	AdminChatIds() []int64
+	AlertChatId() int64
 
 	ErrorStackTraceSizeInKb() int
 
@@ -41,6 +41,7 @@ type config struct {
 	botToken                string
 	webhookSecretToken      string
 	requestTimeoutInSeconds int
+	alertChatId             int64
 
 	errorStackTraceSizeInKb int
 
@@ -77,6 +78,7 @@ func NewConfig(deps configDependencies) *config {
 
 	config.botToken = config.getRequiredString("BOT_TOKEN")
 	config.postgresDsn = config.getRequiredString("POSTGRES_DSN")
+	config.alertChatId = config.getRequiredInt64("ALERT_CHAT_ID")
 	config.runMigrations = config.getOptionalBool("RUN_MIGRATIONS", false)
 	config.requestTimeoutInSeconds = config.getOptionalInt("REQUEST_TIMEOUT_IN_SECONDS", 60)
 	config.errorStackTraceSizeInKb = config.getOptionalInt("ERROR_STACK_TRACE_SIZE_IN_KB", 4)
@@ -125,6 +127,6 @@ func (c *config) HttpPort() string {
 	return c.httpPort
 }
 
-func (c *config) AdminChatIds() []int64 {
-	return []int64{345730740, 486965006}
+func (c *config) AlertChatId() int64 {
+	return c.alertChatId
 }

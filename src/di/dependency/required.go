@@ -19,9 +19,9 @@ func GetRequiredDependencies() []Dependency {
 			Token:       "Config",
 		},
 		{
-			Constructor: db.NewDB,
-			Interface:   nil,
-			Token:       "DB",
+			Constructor: db.NewDatabase,
+			Interface:   new(db.IDatabase),
+			Token:       "Database",
 		},
 	}
 }

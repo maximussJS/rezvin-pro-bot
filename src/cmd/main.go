@@ -2,30 +2,13 @@ package main
 
 import (
 	"context"
-	"go.uber.org/dig"
 	"os"
 	"os/signal"
-	di2 "rezvin-pro-bot/src/di"
+	"rezvin-pro-bot/src/di"
 	"rezvin-pro-bot/src/di/dependency"
-	"rezvin-pro-bot/src/internal/bot"
-	"rezvin-pro-bot/src/utils"
 	"sync"
 	"syscall"
 )
-
-type runAppDependencies struct {
-	dig.In
-
-	Bot bot.IBot `name:"Bot"`
-}
-
-func start(container *dig.Container) {
-	err := container.Invoke(func(deps runAppDependencies) {
-		go deps.Bot.Start()
-	})
-
-	utils.PanicIfError(err)
-}
 
 func main() {
 	shutdownContext, cancel := context.WithCancel(context.Background())
@@ -34,9 +17,9 @@ func main() {
 
 	var wg sync.WaitGroup
 
-	container := di2.BuildContainer()
+	container := di.BuildContainer()
 
-	container = di2.AppendDependenciesToContainer(container, []dependency.Dependency{
+	container = di.AppendDependenciesToContainer(container, []dependency.Dependency{
 		{
 			Constructor: func() context.Context {
 				return shutdownContext
@@ -53,7 +36,7 @@ func main() {
 		},
 	})
 
-	go start(container)
+	go StartApplication(container)
 
 	signalCh := make(chan os.Signal, 1)
 	signal.Notify(signalCh, syscall.SIGINT, syscall.SIGTERM)

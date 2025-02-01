@@ -9,39 +9,18 @@ import (
 	"time"
 )
 
-func (bot *bot) Start() {
-	defer bot.shutdownWaitGroup.Done()
+func (bot *bot) Start(ctx context.Context) {
+	bot.senderService.Send(ctx, bot.bot, bot.config.AlertChatId(), "Бот запустився і готовий до роботи\\!")
 
-	bot.shutdownWaitGroup.Add(1)
-
-	go func() {
-		if bot.config.AppEnv() == constants.DevelopmentEnv {
-			bot.startPolling()
-		} else {
-			bot.startWebhook()
-		}
-	}()
-
-	for _, chatId := range bot.config.AdminChatIds() {
-		bot.senderService.Send(bot.shutdownContext, bot.bot, chatId, "Бот запустився і готовий до роботи\\!")
+	if bot.config.AppEnv() == constants.DevelopmentEnv {
+		bot.startPolling(ctx)
+	} else {
+		bot.startWebhook(ctx)
 	}
 
-	for {
-		select {
-		case <-bot.shutdownContext.Done():
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-
-			for _, chatId := range bot.config.AdminChatIds() {
-				bot.senderService.SendSafe(ctx, bot.bot, chatId, "Бот вимкнено\\! Схоже сталась критична помилка")
-			}
-			bot.shutdown()
-			cancel()
-			return
-		}
-	}
 }
 
-func (bot *bot) startWebhook() {
+func (bot *bot) startWebhook(ctx context.Context) {
 	tlsConfig := &tls.Config{
 		ClientAuth: tls.NoClientCert,
 		MinVersion: tls.VersionTLS11,
@@ -67,11 +46,11 @@ func (bot *bot) startWebhook() {
 
 	bot.logger.Log("Bot started in webhook mode")
 
-	bot.bot.StartWebhook(bot.shutdownContext)
+	bot.bot.StartWebhook(ctx)
 }
 
-func (bot *bot) startPolling() {
+func (bot *bot) startPolling(ctx context.Context) {
 	bot.logger.Log("Bot started in polling mode")
 
-	bot.bot.Start(bot.shutdownContext)
+	bot.bot.Start(ctx)
 }

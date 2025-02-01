@@ -3,21 +3,16 @@ package bot
 import (
 	"context"
 	"fmt"
-	"time"
 )
 
-func (bot *bot) shutdown() {
-	bot.logger.Log("Shutting down gracefully...")
+func (bot *bot) Shutdown(ctx context.Context) error {
+	err := bot.server.Shutdown(ctx)
 
-	shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancelShutdown()
-
-	bot.logger.Log("Bot closed successfully")
-
-	err := bot.server.Shutdown(shutdownCtx)
 	if err != nil {
-		bot.logger.Error(fmt.Sprintf("Failed to shutdown server gracefully: %s", err))
+		return fmt.Errorf("error while shutting down server: %w", err)
 	}
 
-	bot.logger.Log("Server closed successfully")
+	bot.senderService.SendSafe(ctx, bot.bot, bot.config.AlertChatId(), "Бот вимкнено\\! Схоже сталась критична помилка")
+
+	return nil
 }

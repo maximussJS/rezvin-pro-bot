@@ -42,6 +42,21 @@ func (c *config) getOptionalInt(key string, defaultValue int) int {
 	return valueInt
 }
 
+func (c *config) getRequiredInt64(key string) int64 {
+	value := os.Getenv(key)
+
+	if value == "" {
+		c.logger.Error(fmt.Sprintf(`Environment variable "%s" not found`, key))
+		panic(fmt.Sprintf(`Environment variable "%s" not found`, key))
+	}
+
+	valueInt, err := strconv.ParseInt(value, 10, 64)
+
+	utils.PanicIfError(err)
+
+	return valueInt
+}
+
 func (c *config) getOptionalInt64(key string, defaultValue int64) int64 {
 	value := os.Getenv(key)
 

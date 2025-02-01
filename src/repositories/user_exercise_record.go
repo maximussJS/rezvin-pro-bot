@@ -5,6 +5,7 @@ import (
 	"go.uber.org/dig"
 	"gorm.io/gorm"
 	"rezvin-pro-bot/src/config"
+	"rezvin-pro-bot/src/internal/db"
 	"rezvin-pro-bot/src/models"
 	"rezvin-pro-bot/src/utils"
 )
@@ -12,8 +13,8 @@ import (
 type userExerciseRecordRepositoryDependencies struct {
 	dig.In
 
-	DB     *gorm.DB       `name:"DB"`
-	Config config.IConfig `name:"Config"`
+	Database db.IDatabase   `name:"Database"`
+	Config   config.IConfig `name:"Config"`
 }
 
 type IUserExerciseRecordRepository interface {
@@ -36,15 +37,17 @@ type userExerciseRecordRepository struct {
 }
 
 func NewUserExerciseRecordRepository(deps userExerciseRecordRepositoryDependencies) *userExerciseRecordRepository {
+	r := &userExerciseRecordRepository{
+		db: deps.Database.GetInstance(),
+	}
+
 	if deps.Config.RunMigrations() {
-		err := deps.DB.AutoMigrate(&models.UserExerciseRecord{})
+		err := r.db.AutoMigrate(&models.UserExerciseRecord{})
 
 		utils.PanicIfError(err)
 	}
 
-	return &userExerciseRecordRepository{
-		db: deps.DB,
-	}
+	return r
 }
 
 func (r *userExerciseRecordRepository) Create(ctx context.Context, record models.UserExerciseRecord) {

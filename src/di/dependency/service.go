@@ -19,5 +19,10 @@ func GetServicesDependencies() []Dependency {
 			Interface:   new(services.ILockService),
 			Token:       "LockService",
 		},
+		{
+			Constructor: services.NewShutdownService,
+			Interface:   new(services.IShutdownService),
+			Token:       "ShutdownService",
+		},
 	}
 }

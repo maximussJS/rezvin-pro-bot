@@ -5,15 +5,16 @@ import (
 	"go.uber.org/dig"
 	"gorm.io/gorm"
 	"rezvin-pro-bot/src/config"
+	"rezvin-pro-bot/src/internal/db"
 	"rezvin-pro-bot/src/models"
-	utils2 "rezvin-pro-bot/src/utils"
+	"rezvin-pro-bot/src/utils"
 )
 
 type userProgramRepositoryDependencies struct {
 	dig.In
 
-	DB     *gorm.DB       `name:"DB"`
-	Config config.IConfig `name:"Config"`
+	Database db.IDatabase   `name:"Database"`
+	Config   config.IConfig `name:"Config"`
 }
 
 type IUserProgramRepository interface {
@@ -32,21 +33,23 @@ type userProgramRepository struct {
 }
 
 func NewUserProgramRepository(deps userProgramRepositoryDependencies) *userProgramRepository {
+	r := &userProgramRepository{
+		db: deps.Database.GetInstance(),
+	}
+
 	if deps.Config.RunMigrations() {
-		err := deps.DB.AutoMigrate(&models.UserProgram{})
+		err := r.db.AutoMigrate(&models.UserProgram{})
 
-		utils2.PanicIfError(err)
+		utils.PanicIfError(err)
 	}
 
-	return &userProgramRepository{
-		db: deps.DB,
-	}
+	return r
 }
 
 func (r *userProgramRepository) Create(ctx context.Context, userProgram models.UserProgram) uint {
 	err := r.db.WithContext(ctx).Create(&userProgram).Error
 
-	utils2.PanicIfNotContextError(err)
+	utils.PanicIfNotContextError(err)
 
 	return userProgram.Id
 }
@@ -60,11 +63,11 @@ func (r *userProgramRepository) GetById(ctx context.Context, id uint) *models.Us
 		First(&userProgram).
 		Error
 
-	if err != nil && utils2.IsRecordNotFoundError(err) {
+	if err != nil && utils.IsRecordNotFoundError(err) {
 		return nil
 	}
 
-	utils2.PanicIfNotRecordNotFound(err)
+	utils.PanicIfNotRecordNotFound(err)
 
 	return &userProgram
 }
@@ -78,7 +81,7 @@ func (r *userProgramRepository) GetAllByProgramId(ctx context.Context, programId
 		Find(&userPrograms).
 		Error
 
-	utils2.PanicIfNotContextError(err)
+	utils.PanicIfNotContextError(err)
 
 	return userPrograms
 }
@@ -92,7 +95,7 @@ func (r *userProgramRepository) CountAllByUserId(ctx context.Context, userId int
 		Count(&count).
 		Error
 
-	utils2.PanicIfNotContextError(err)
+	utils.PanicIfNotContextError(err)
 
 	return count
 }
@@ -107,11 +110,11 @@ func (r *userProgramRepository) GetByUserIdAndProgramId(ctx context.Context, use
 		First(&userProgram).
 		Error
 
-	if err != nil && utils2.IsRecordNotFoundError(err) {
+	if err != nil && utils.IsRecordNotFoundError(err) {
 		return nil
 	}
 
-	utils2.PanicIfNotRecordNotFound(err)
+	utils.PanicIfNotRecordNotFound(err)
 
 	return &userProgram
 }
@@ -127,7 +130,7 @@ func (r *userProgramRepository) GetByUserId(ctx context.Context, userId int64, l
 		Find(&userPrograms).
 		Error
 
-	utils2.PanicIfNotContextError(err)
+	utils.PanicIfNotContextError(err)
 
 	return userPrograms
 }
@@ -139,7 +142,7 @@ func (r *userProgramRepository) DeleteById(ctx context.Context, id uint) {
 		Delete(&models.UserProgram{}).
 		Error
 
-	utils2.PanicIfNotContextError(err)
+	utils.PanicIfNotContextError(err)
 }
 
 func (r *userProgramRepository) DeleteByUserIdAndProgramId(ctx context.Context, userId int64, programId uint) {
@@ -150,5 +153,5 @@ func (r *userProgramRepository) DeleteByUserIdAndProgramId(ctx context.Context, 
 		Delete(&models.UserProgram{}).
 		Error
 
-	utils2.PanicIfNotContextError(err)
+	utils.PanicIfNotContextError(err)
 }

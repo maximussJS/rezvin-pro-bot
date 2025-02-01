@@ -12,34 +12,25 @@ type ILockService interface {
 	Lock(key string)
 	Unlock(key string)
 	TryLock(key string) bool
+	Shutdown(ctx context.Context) error
 }
 
 type lockServiceDependencies struct {
 	dig.In
 
-	Logger            logger.ILogger  `name:"Logger"`
-	ShutdownWaitGroup *sync.WaitGroup `name:"ShutdownWaitGroup"`
-	ShutdownContext   context.Context `name:"ShutdownContext"`
+	Logger logger.ILogger `name:"Logger"`
 }
 
 type lockService struct {
-	state             map[string]*sync.RWMutex
-	shutdownWaitGroup *sync.WaitGroup
-	shutdownContext   context.Context
-	logger            logger.ILogger
+	state  map[string]*sync.RWMutex
+	logger logger.ILogger
 }
 
 func NewLockService(deps lockServiceDependencies) *lockService {
-	s := &lockService{
-		state:             make(map[string]*sync.RWMutex),
-		shutdownWaitGroup: deps.ShutdownWaitGroup,
-		shutdownContext:   deps.ShutdownContext,
-		logger:            deps.Logger,
+	return &lockService{
+		state:  make(map[string]*sync.RWMutex),
+		logger: deps.Logger,
 	}
-
-	go s.waitShutdown()
-
-	return s
 }
 
 func (ls *lockService) Lock(key string) {
@@ -52,10 +43,7 @@ func (ls *lockService) Lock(key string) {
 
 func (ls *lockService) Unlock(key string) {
 	if _, ok := ls.state[key]; !ok {
-		if ls.shutdownContext.Err() != nil {
-			return
-		}
-		panic(fmt.Sprintf("Lock with key %s does not exist", key))
+		ls.logger.Warn(fmt.Sprintf("Lock with key %s does not exist", key))
 	}
 
 	ls.state[key].Unlock()
@@ -69,18 +57,12 @@ func (ls *lockService) TryLock(key string) bool {
 	return ls.state[key].TryLock()
 }
 
-func (ls *lockService) waitShutdown() {
-	defer ls.shutdownWaitGroup.Done()
-
-	ls.shutdownWaitGroup.Add(1)
-
-	<-ls.shutdownContext.Done()
-
+func (ls *lockService) Shutdown(_ context.Context) error {
 	for key, _ := range ls.state {
 		delete(ls.state, key)
 	}
 
 	clear(ls.state)
 
-	ls.logger.Log("Lock service stopped successfully")
+	return nil
 }

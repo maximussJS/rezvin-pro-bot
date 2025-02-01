@@ -11,7 +11,7 @@ import (
 	bot_utils "rezvin-pro-bot/src/utils/bot"
 	"rezvin-pro-bot/src/utils/context"
 	"rezvin-pro-bot/src/utils/inline_keyboards"
-	messages2 "rezvin-pro-bot/src/utils/messages"
+	"rezvin-pro-bot/src/utils/messages"
 )
 
 type ICommandHandler interface {
@@ -50,22 +50,22 @@ func (c *commandHandler) Start(ctx context.Context, b *tg_bot.Bot, update *model
 
 	if user == nil {
 		kb := inline_keyboards.UserRegister()
-		c.senderService.SendWithKb(ctx, b, chatId, messages2.NeedRegister(name), kb)
+		c.senderService.SendWithKb(ctx, b, chatId, messages.NeedRegister(name), kb)
 		return
 	}
 
 	if user.IsAdmin {
 		kb := inline_keyboards.AdminMain()
-		c.senderService.SendWithKb(ctx, b, chatId, messages2.AdminMainMessage(), kb)
+		c.senderService.SendWithKb(ctx, b, chatId, messages.AdminMainMessage(), kb)
 	} else {
 		if user.IsApproved {
-			msg := messages2.UserMenuMessage(user.GetPublicName())
+			msg := messages.UserMenuMessage(user.GetPublicName())
 			c.senderService.SendWithKb(ctx, b, chatId, msg, inline_keyboards.UserMenu())
 		} else {
 			if user.IsDeclined {
-				c.senderService.Send(ctx, b, chatId, messages2.UserDeclinedMessage(name))
+				c.senderService.Send(ctx, b, chatId, messages.UserDeclinedMessage(name))
 			} else {
-				c.senderService.Send(ctx, b, chatId, messages2.AlreadyRegistered())
+				c.senderService.Send(ctx, b, chatId, messages.AlreadyRegistered())
 			}
 		}
 	}

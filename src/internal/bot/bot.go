@@ -12,20 +12,18 @@ import (
 	"rezvin-pro-bot/src/repositories"
 	"rezvin-pro-bot/src/services"
 	"rezvin-pro-bot/src/utils"
-	"sync"
 )
 
 type IBot interface {
-	Start()
+	Start(ctx context.Context)
+	Shutdown(ctx context.Context) error
 }
 
 type botDependencies struct {
 	dig.In
 
-	ShutdownWaitGroup *sync.WaitGroup `name:"ShutdownWaitGroup"`
-	ShutdownContext   context.Context `name:"ShutdownContext"`
-	Logger            logger.ILogger  `name:"Logger"`
-	Config            config.IConfig  `name:"Config"`
+	Logger logger.ILogger `name:"Logger"`
+	Config config.IConfig `name:"Config"`
 
 	SenderService       services.ISenderService       `name:"SenderService"`
 	LockService         services.ILockService         `name:"LockService"`
@@ -50,9 +48,6 @@ type botDependencies struct {
 }
 
 type bot struct {
-	shutdownWaitGroup *sync.WaitGroup
-	shutdownContext   context.Context
-
 	logger logger.ILogger
 	config config.IConfig `name:"Config"`
 
@@ -83,10 +78,8 @@ type bot struct {
 
 func NewBot(deps botDependencies) *bot {
 	b := &bot{
-		shutdownWaitGroup: deps.ShutdownWaitGroup,
-		shutdownContext:   deps.ShutdownContext,
-		logger:            deps.Logger,
-		config:            deps.Config,
+		logger: deps.Logger,
+		config: deps.Config,
 
 		senderService:       deps.SenderService,
 		lockService:         deps.LockService,

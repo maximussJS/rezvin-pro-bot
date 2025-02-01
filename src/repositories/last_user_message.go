@@ -5,6 +5,7 @@ import (
 	"go.uber.org/dig"
 	"gorm.io/gorm"
 	"rezvin-pro-bot/src/config"
+	"rezvin-pro-bot/src/internal/db"
 	"rezvin-pro-bot/src/models"
 	"rezvin-pro-bot/src/utils"
 )
@@ -19,8 +20,8 @@ type ILastUserMessageRepository interface {
 type lastUserMessageRepositoryDependencies struct {
 	dig.In
 
-	DB     *gorm.DB       `name:"DB"`
-	Config config.IConfig `name:"Config"`
+	Database db.IDatabase   `name:"Database"`
+	Config   config.IConfig `name:"Config"`
 }
 
 type lastUserMessageRepository struct {
@@ -28,15 +29,17 @@ type lastUserMessageRepository struct {
 }
 
 func NewLastUserMessageRepository(deps lastUserMessageRepositoryDependencies) *lastUserMessageRepository {
+	r := &lastUserMessageRepository{
+		db: deps.Database.GetInstance(),
+	}
+
 	if deps.Config.RunMigrations() {
-		err := deps.DB.AutoMigrate(&models.LastUserMessage{})
+		err := r.db.AutoMigrate(&models.LastUserMessage{})
 
 		utils.PanicIfError(err)
 	}
 
-	return &lastUserMessageRepository{
-		db: deps.DB,
-	}
+	return r
 }
 
 func (r *lastUserMessageRepository) Create(ctx context.Context, msg models.LastUserMessage) int64 {

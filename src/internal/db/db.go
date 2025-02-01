@@ -10,24 +10,37 @@ import (
 	"rezvin-pro-bot/src/config"
 	"rezvin-pro-bot/src/constants"
 	internal_logger "rezvin-pro-bot/src/internal/logger"
-	"sync"
 )
 
-type dbDependencies struct {
-	dig.In
-
-	ShutdownWaitGroup *sync.WaitGroup         `name:"ShutdownWaitGroup"`
-	ShutdownContext   context.Context         `name:"ShutdownContext"`
-	Logger            internal_logger.ILogger `name:"Logger"`
-	Config            config.IConfig          `name:"Config"`
+type IDatabase interface {
+	Shutdown(ctx context.Context) error
+	GetInstance() *gorm.DB
 }
 
-func NewDB(deps dbDependencies) *gorm.DB {
-	dsn := deps.Config.PostgresDSN()
+type databaseDependencies struct {
+	dig.In
+
+	Logger internal_logger.ILogger `name:"Logger"`
+	Config config.IConfig          `name:"Config"`
+}
+
+type database struct {
+	config   config.IConfig
+	logger   internal_logger.ILogger
+	instance *gorm.DB
+}
+
+func NewDatabase(deps databaseDependencies) *database {
+	db := &database{
+		config: deps.Config,
+		logger: deps.Logger,
+	}
+
+	dsn := db.config.PostgresDSN()
 
 	logMode := logger.Error
 
-	if deps.Config.AppEnv() == constants.ProductionEnv {
+	if db.config.AppEnv() == constants.ProductionEnv {
 		logMode = logger.Error
 	}
 
@@ -36,35 +49,33 @@ func NewDB(deps dbDependencies) *gorm.DB {
 	})
 
 	if err != nil {
-		deps.Logger.Error(fmt.Sprintf("Failed to connect to database: %s", err))
+		db.logger.Error(fmt.Sprintf("Failed to connect to database: %s", err))
 		panic(err)
 	}
 
-	deps.Logger.Log("Connected to database")
+	db.logger.Log("Connected to database")
 
-	deps.ShutdownWaitGroup.Add(1)
+	db.instance = dbInstance
 
-	go func() {
-		defer deps.ShutdownWaitGroup.Done()
+	return db
+}
 
-		<-deps.ShutdownContext.Done()
+func (db *database) GetInstance() *gorm.DB {
+	return db.instance
+}
 
-		db, err := dbInstance.DB()
+func (db *database) Shutdown(_ context.Context) error {
+	dbInstance, err := db.instance.DB()
 
-		if err != nil {
-			deps.Logger.Error(fmt.Sprintf("Failed to get database instance: %s", err))
-			return
-		}
+	if err != nil {
+		return fmt.Errorf("failed to get database instance: %s", err)
+	}
 
-		closeErr := db.Close()
+	closeErr := dbInstance.Close()
 
-		if closeErr != nil {
-			deps.Logger.Error(fmt.Sprintf("Failed to close database connection: %s", closeErr))
-			return
-		}
+	if closeErr != nil {
+		return fmt.Errorf("failed to close database connection: %s", closeErr)
+	}
 
-		deps.Logger.Log("Database connection closed successfully")
-	}()
-
-	return dbInstance
+	return nil
 }

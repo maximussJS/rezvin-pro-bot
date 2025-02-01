@@ -6,8 +6,9 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"rezvin-pro-bot/src/config"
+	"rezvin-pro-bot/src/internal/db"
 	"rezvin-pro-bot/src/models"
-	utils2 "rezvin-pro-bot/src/utils"
+	"rezvin-pro-bot/src/utils"
 )
 
 type IExerciseRepository interface {
@@ -25,8 +26,8 @@ type IExerciseRepository interface {
 type exerciseRepositoryDependencies struct {
 	dig.In
 
-	DB     *gorm.DB       `name:"DB"`
-	Config config.IConfig `name:"Config"`
+	Database db.IDatabase   `name:"Database"`
+	Config   config.IConfig `name:"Config"`
 }
 
 type exerciseRepository struct {
@@ -34,21 +35,23 @@ type exerciseRepository struct {
 }
 
 func NewExerciseRepository(deps exerciseRepositoryDependencies) *exerciseRepository {
+	r := &exerciseRepository{
+		db: deps.Database.GetInstance(),
+	}
+
 	if deps.Config.RunMigrations() {
-		err := deps.DB.AutoMigrate(&models.Exercise{})
+		err := r.db.AutoMigrate(&models.Exercise{})
 
-		utils2.PanicIfError(err)
+		utils.PanicIfError(err)
 	}
 
-	return &exerciseRepository{
-		db: deps.DB,
-	}
+	return r
 }
 
 func (r *exerciseRepository) Create(ctx context.Context, exercise models.Exercise) uint {
 	err := r.db.WithContext(ctx).Create(&exercise).Error
 
-	utils2.PanicIfNotContextError(err)
+	utils.PanicIfNotContextError(err)
 
 	return exercise.Id
 }
@@ -57,11 +60,11 @@ func (r *exerciseRepository) GetById(ctx context.Context, id uint) *models.Exerc
 	var exercise models.Exercise
 	err := r.db.WithContext(ctx).Clauses(clause.Returning{}).Where("id = ?", id).First(&exercise).Error
 
-	if err != nil && utils2.IsRecordNotFoundError(err) {
+	if err != nil && utils.IsRecordNotFoundError(err) {
 		return nil
 	}
 
-	utils2.PanicIfNotRecordNotFound(err)
+	utils.PanicIfNotRecordNotFound(err)
 
 	return &exercise
 }
@@ -71,7 +74,7 @@ func (r *exerciseRepository) GetAllByProgramId(ctx context.Context, programId ui
 
 	err := r.db.WithContext(ctx).Where("program_id = ?", programId).Find(&exercises).Error
 
-	utils2.PanicIfNotContextError(err)
+	utils.PanicIfNotContextError(err)
 
 	return exercises
 }
@@ -81,7 +84,7 @@ func (r *exerciseRepository) GetByProgramId(ctx context.Context, programId uint,
 
 	err := r.db.WithContext(ctx).Limit(limit).Offset(offset).Where("program_id = ?", programId).Find(&exercises).Error
 
-	utils2.PanicIfNotContextError(err)
+	utils.PanicIfNotContextError(err)
 
 	return exercises
 }
@@ -91,7 +94,7 @@ func (r *exerciseRepository) CountByProgramId(ctx context.Context, programId uin
 
 	err := r.db.WithContext(ctx).Model(&models.Exercise{}).Where("program_id = ?", programId).Count(&count).Error
 
-	utils2.PanicIfNotContextError(err)
+	utils.PanicIfNotContextError(err)
 
 	return count
 }
@@ -100,11 +103,11 @@ func (r *exerciseRepository) GetByIdAndProgramId(ctx context.Context, id, progra
 	var exercise models.Exercise
 	err := r.db.WithContext(ctx).Clauses(clause.Returning{}).Where("id = ?", id).Where("program_id = ?", programId).First(&exercise).Error
 
-	if err != nil && utils2.IsRecordNotFoundError(err) {
+	if err != nil && utils.IsRecordNotFoundError(err) {
 		return nil
 	}
 
-	utils2.PanicIfNotRecordNotFound(err)
+	utils.PanicIfNotRecordNotFound(err)
 
 	return &exercise
 }
@@ -114,7 +117,7 @@ func (r *exerciseRepository) GetAll(ctx context.Context, limit, offset int) []mo
 
 	err := r.db.WithContext(ctx).Limit(limit).Offset(offset).Find(&exercises).Error
 
-	utils2.PanicIfNotContextError(err)
+	utils.PanicIfNotContextError(err)
 
 	return exercises
 }
@@ -123,11 +126,11 @@ func (r *exerciseRepository) GetByNameAndProgramId(ctx context.Context, name str
 	var exercise models.Exercise
 	err := r.db.WithContext(ctx).Where("name = ?", name).Where("program_id = ?", programId).First(&exercise).Error
 
-	if err != nil && utils2.IsRecordNotFoundError(err) {
+	if err != nil && utils.IsRecordNotFoundError(err) {
 		return nil
 	}
 
-	utils2.PanicIfNotRecordNotFound(err)
+	utils.PanicIfNotRecordNotFound(err)
 
 	return &exercise
 }
@@ -135,11 +138,11 @@ func (r *exerciseRepository) GetByNameAndProgramId(ctx context.Context, name str
 func (r *exerciseRepository) UpdateById(ctx context.Context, id uint, exercise models.Exercise) {
 	err := r.db.WithContext(ctx).Model(&models.Exercise{}).Where("id = ?", id).Updates(&exercise).Error
 
-	utils2.PanicIfNotContextError(err)
+	utils.PanicIfNotContextError(err)
 }
 
 func (r *exerciseRepository) DeleteById(ctx context.Context, id uint) {
 	err := r.db.WithContext(ctx).Where("id = ?", id).Delete(&models.Exercise{}).Error
 
-	utils2.PanicIfNotContextError(err)
+	utils.PanicIfNotContextError(err)
 }
