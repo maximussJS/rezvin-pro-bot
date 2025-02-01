@@ -48,9 +48,24 @@ func GetHandlersDependencies() []Dependency {
 			Token:       "ClientHandler",
 		},
 		{
-			Constructor: cb_handlers.NewUserHandler,
-			Interface:   new(cb_handlers.IUserHandler),
-			Token:       "UserHandler",
+			Constructor: cb_handlers.NewClientProgramHandler,
+			Interface:   new(cb_handlers.IClientProgramHandler),
+			Token:       "ClientProgramHandler",
+		},
+		{
+			Constructor: cb_handlers.NewClientResultHandler,
+			Interface:   new(cb_handlers.IClientResultHandler),
+			Token:       "ClientResultHandler",
+		},
+		{
+			Constructor: cb_handlers.NewUserResultHandler,
+			Interface:   new(cb_handlers.IUserResultHandler),
+			Token:       "UserResultHandler",
+		},
+		{
+			Constructor: cb_handlers.NewUserProgramHandler,
+			Interface:   new(cb_handlers.IUserProgramHandler),
+			Token:       "UserProgramHandler",
 		},
 		{
 			Constructor: cb_handlers.NewMainHandler,

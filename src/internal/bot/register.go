@@ -3,7 +3,6 @@ package bot
 import (
 	tg_bot "github.com/go-telegram/bot"
 	"rezvin-pro-bot/src/constants"
-	"rezvin-pro-bot/src/constants/callback_data"
 )
 
 func (bot *bot) registerCommand(command string, handler tg_bot.HandlerFunc, middlewares []tg_bot.Middleware) {
@@ -33,14 +32,17 @@ func (bot *bot) registerHandlers() {
 
 	bot.registerCommand(constants.CommandStart, bot.commandsHandler.Start, bot.emptyMiddlewares())
 
-	bot.registerCallbackQueryByPrefix(callback_data.MainPrefix, bot.mainHandler.Handle, bot.mainMiddlewares())
+	bot.registerCallbackQueryByPrefix(constants.MainPrefix, bot.mainHandler.Handle, bot.mainMiddlewares())
 
-	bot.registerCallbackQueryByPrefix(callback_data.RegisterPrefix, bot.registerHandler.Handle, bot.emptyMiddlewares())
-	bot.registerCallbackQueryByPrefix(callback_data.UserPrefix, bot.userHandler.Handle, bot.userMiddlewares())
+	bot.registerCallbackQueryByPrefix(constants.RegisterPrefix, bot.registerHandler.Handle, bot.emptyMiddlewares())
+	bot.registerCallbackQueryByPrefix(constants.UserProgramPrefix, bot.userProgramHandler.Handle, bot.userMiddlewares())
+	bot.registerCallbackQueryByPrefix(constants.UserResultPrefix, bot.userResultHandler.Handle, bot.userMiddlewares())
 
-	bot.registerCallbackQueryByPrefix(callback_data.ProgramPrefix, bot.programHandler.Handle, bot.adminMiddlewares())
-	bot.registerCallbackQueryByPrefix(callback_data.ExercisePrefix, bot.exerciseHandler.Handle, bot.adminMiddlewares())
-	bot.registerCallbackQueryByPrefix(callback_data.PendingUsersPrefix, bot.pendingUsersHandler.Handle, bot.adminMiddlewares())
-	bot.registerCallbackQueryByPrefix(callback_data.BackPrefix, bot.backHandler.Handle, bot.adminMiddlewares())
-	bot.registerCallbackQueryByPrefix(callback_data.ClientPrefix, bot.clientHandler.Handle, bot.adminMiddlewares())
+	bot.registerCallbackQueryByPrefix(constants.ProgramPrefix, bot.programHandler.Handle, bot.adminMiddlewares())
+	bot.registerCallbackQueryByPrefix(constants.ExercisePrefix, bot.exerciseHandler.Handle, bot.adminMiddlewares())
+	bot.registerCallbackQueryByPrefix(constants.PendingUsersPrefix, bot.pendingUsersHandler.Handle, bot.adminMiddlewares())
+	bot.registerCallbackQueryByPrefix(constants.BackPrefix, bot.backHandler.Handle, bot.adminMiddlewares())
+	bot.registerCallbackQueryByPrefix(constants.ClientPrefix, bot.clientHandler.Handle, bot.adminMiddlewares())
+	bot.registerCallbackQueryByPrefix(constants.ClientProgramPrefix, bot.clientProgramHandler.Handle, bot.adminMiddlewares())
+	bot.registerCallbackQueryByPrefix(constants.ClientResultPrefix, bot.clientResultHandler.Handle, bot.adminMiddlewares())
 }

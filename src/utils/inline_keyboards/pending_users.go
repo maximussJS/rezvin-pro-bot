@@ -2,7 +2,7 @@ package inline_keyboards
 
 import (
 	tg_models "github.com/go-telegram/bot/models"
-	"rezvin-pro-bot/src/constants/callback_data"
+	"rezvin-pro-bot/src/constants"
 	"rezvin-pro-bot/src/models"
 	"rezvin-pro-bot/src/types"
 	bot_utils "rezvin-pro-bot/src/utils/bot"
@@ -20,7 +20,7 @@ func PendingUsersList(users []models.User, totalUsersCount int64, limit, offset 
 		userKb = append(userKb, []tg_models.InlineKeyboardButton{
 			{
 				Text:         user.GetPrivateName(),
-				CallbackData: bot_utils.AddParamsToQueryString(callback_data.PendingUsersSelected, params),
+				CallbackData: bot_utils.AddParamsToQueryString(constants.PendingUsersSelected, params),
 			},
 		})
 	}
@@ -28,7 +28,7 @@ func PendingUsersList(users []models.User, totalUsersCount int64, limit, offset 
 	userKb = append(userKb, GetPaginationButtons(
 		usersLen,
 		totalUsersCount,
-		callback_data.PendingUsersList,
+		constants.PendingUsersList,
 		limit,
 		offset,
 		types.NewEmptyParams(),
@@ -36,7 +36,7 @@ func PendingUsersList(users []models.User, totalUsersCount int64, limit, offset 
 	))
 
 	return &tg_models.InlineKeyboardMarkup{
-		InlineKeyboard: append(userKb, GetBackButton(callback_data.MainBackToMain, types.NewEmptyParams())),
+		InlineKeyboard: append(userKb, GetBackButton(constants.MainBackToMain, types.NewEmptyParams())),
 	}
 }
 
@@ -48,13 +48,13 @@ func PendingUserDecide(user models.User) *tg_models.InlineKeyboardMarkup {
 	return &tg_models.InlineKeyboardMarkup{
 		InlineKeyboard: [][]tg_models.InlineKeyboardButton{
 			{
-				{Text: "✅ Підтвердити", CallbackData: bot_utils.AddParamsToQueryString(callback_data.PendingUsersApprove, params)},
+				{Text: "✅ Підтвердити", CallbackData: bot_utils.AddParamsToQueryString(constants.PendingUsersApprove, params)},
 			},
 			{
-				{Text: "❌ Відхилити", CallbackData: bot_utils.AddParamsToQueryString(callback_data.PendingUsersDecline, params)},
+				{Text: "❌ Відхилити", CallbackData: bot_utils.AddParamsToQueryString(constants.PendingUsersDecline, params)},
 			},
 			{
-				{Text: "🔙 Назад", CallbackData: callback_data.BackToPendingUsersList},
+				{Text: "🔙 Назад", CallbackData: constants.BackToPendingUsersList},
 			},
 		},
 	}
@@ -63,7 +63,7 @@ func PendingUserDecide(user models.User) *tg_models.InlineKeyboardMarkup {
 func PendingUsersOk() *tg_models.InlineKeyboardMarkup {
 	return &tg_models.InlineKeyboardMarkup{
 		InlineKeyboard: [][]tg_models.InlineKeyboardButton{
-			GetOkButton(callback_data.PendingUsersList, types.NewEmptyParams()),
+			GetOkButton(constants.PendingUsersList, types.NewEmptyParams()),
 		},
 	}
 }

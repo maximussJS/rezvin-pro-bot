@@ -29,22 +29,25 @@ type botDependencies struct {
 	LockService         services.ILockService         `name:"LockService"`
 	ConversationService services.IConversationService `name:"ConversationService"`
 
-	DefaultHandler      handlers.IDefaultHandler              `name:"DefaultHandler"`
-	CommandsHandler     handlers.ICommandHandler              `name:"CommandHandler"`
-	RegisterHandler     callback_queries.IRegisterHandler     `name:"RegisterHandler"`
-	ProgramHandler      callback_queries.IProgramHandler      `name:"ProgramHandler"`
-	ExerciseHandler     callback_queries.IExerciseHandler     `name:"ExerciseHandler"`
-	PendingUsersHandler callback_queries.IPendingUsersHandler `name:"PendingUsersHandler"`
-	BackHandler         callback_queries.IBackHandler         `name:"BackHandler"`
-	ClientHandler       callback_queries.IClientHandler       `name:"ClientHandler"`
-	UserHandler         callback_queries.IUserHandler         `name:"UserHandler"`
-	MainHandler         callback_queries.IMainHandler         `name:"MainHandler"`
+	DefaultHandler       handlers.IDefaultHandler               `name:"DefaultHandler"`
+	CommandsHandler      handlers.ICommandHandler               `name:"CommandHandler"`
+	RegisterHandler      callback_queries.IRegisterHandler      `name:"RegisterHandler"`
+	ProgramHandler       callback_queries.IProgramHandler       `name:"ProgramHandler"`
+	ExerciseHandler      callback_queries.IExerciseHandler      `name:"ExerciseHandler"`
+	PendingUsersHandler  callback_queries.IPendingUsersHandler  `name:"PendingUsersHandler"`
+	BackHandler          callback_queries.IBackHandler          `name:"BackHandler"`
+	ClientHandler        callback_queries.IClientHandler        `name:"ClientHandler"`
+	ClientProgramHandler callback_queries.IClientProgramHandler `name:"ClientProgramHandler"`
+	ClientResultHandler  callback_queries.IClientResultHandler  `name:"ClientResultHandler"`
+	UserResultHandler    callback_queries.IUserResultHandler    `name:"UserResultHandler"`
+	UserProgramHandler   callback_queries.IUserProgramHandler   `name:"UserProgramHandler"`
+	MainHandler          callback_queries.IMainHandler          `name:"MainHandler"`
 
-	UserRepository               repositories.IUserRepository               `name:"UserRepository"`
-	ProgramRepository            repositories.IProgramRepository            `name:"ProgramRepository"`
-	UserProgramRepository        repositories.IUserProgramRepository        `name:"UserProgramRepository"`
-	UserExerciseRecordRepository repositories.IUserExerciseRecordRepository `name:"UserExerciseRecordRepository"`
-	ExerciseRepository           repositories.IExerciseRepository           `name:"ExerciseRepository"`
+	UserRepository        repositories.IUserRepository        `name:"UserRepository"`
+	ProgramRepository     repositories.IProgramRepository     `name:"ProgramRepository"`
+	UserProgramRepository repositories.IUserProgramRepository `name:"UserProgramRepository"`
+	UserResultRepository  repositories.IUserResultRepository  `name:"UserResultRepository"`
+	ExerciseRepository    repositories.IExerciseRepository    `name:"ExerciseRepository"`
 }
 
 type bot struct {
@@ -58,22 +61,25 @@ type bot struct {
 	lockService         services.ILockService
 	conversationService services.IConversationService
 
-	commandsHandler     handlers.ICommandHandler
-	defaultHandler      handlers.IDefaultHandler
-	registerHandler     callback_queries.IRegisterHandler
-	programHandler      callback_queries.IProgramHandler
-	exerciseHandler     callback_queries.IExerciseHandler
-	pendingUsersHandler callback_queries.IPendingUsersHandler
-	backHandler         callback_queries.IBackHandler
-	clientHandler       callback_queries.IClientHandler
-	userHandler         callback_queries.IUserHandler
-	mainHandler         callback_queries.IMainHandler
+	commandsHandler      handlers.ICommandHandler
+	defaultHandler       handlers.IDefaultHandler
+	registerHandler      callback_queries.IRegisterHandler
+	programHandler       callback_queries.IProgramHandler
+	exerciseHandler      callback_queries.IExerciseHandler
+	pendingUsersHandler  callback_queries.IPendingUsersHandler
+	backHandler          callback_queries.IBackHandler
+	clientHandler        callback_queries.IClientHandler
+	clientProgramHandler callback_queries.IClientProgramHandler
+	clientResultHandler  callback_queries.IClientResultHandler
+	userResultHandler    callback_queries.IUserResultHandler
+	userProgramHandler   callback_queries.IUserProgramHandler
+	mainHandler          callback_queries.IMainHandler
 
-	userRepository               repositories.IUserRepository
-	programRepository            repositories.IProgramRepository
-	userProgramRepository        repositories.IUserProgramRepository
-	userExerciseRecordRepository repositories.IUserExerciseRecordRepository
-	exerciseRepository           repositories.IExerciseRepository
+	userRepository        repositories.IUserRepository
+	programRepository     repositories.IProgramRepository
+	userProgramRepository repositories.IUserProgramRepository
+	userResultRepository  repositories.IUserResultRepository
+	exerciseRepository    repositories.IExerciseRepository
 }
 
 func NewBot(deps botDependencies) *bot {
@@ -85,22 +91,25 @@ func NewBot(deps botDependencies) *bot {
 		lockService:         deps.LockService,
 		conversationService: deps.ConversationService,
 
-		commandsHandler:     deps.CommandsHandler,
-		defaultHandler:      deps.DefaultHandler,
-		programHandler:      deps.ProgramHandler,
-		registerHandler:     deps.RegisterHandler,
-		exerciseHandler:     deps.ExerciseHandler,
-		pendingUsersHandler: deps.PendingUsersHandler,
-		backHandler:         deps.BackHandler,
-		userHandler:         deps.UserHandler,
-		mainHandler:         deps.MainHandler,
-		clientHandler:       deps.ClientHandler,
+		commandsHandler:      deps.CommandsHandler,
+		defaultHandler:       deps.DefaultHandler,
+		programHandler:       deps.ProgramHandler,
+		registerHandler:      deps.RegisterHandler,
+		exerciseHandler:      deps.ExerciseHandler,
+		pendingUsersHandler:  deps.PendingUsersHandler,
+		backHandler:          deps.BackHandler,
+		userResultHandler:    deps.UserResultHandler,
+		userProgramHandler:   deps.UserProgramHandler,
+		mainHandler:          deps.MainHandler,
+		clientHandler:        deps.ClientHandler,
+		clientProgramHandler: deps.ClientProgramHandler,
+		clientResultHandler:  deps.ClientResultHandler,
 
-		userRepository:               deps.UserRepository,
-		programRepository:            deps.ProgramRepository,
-		userProgramRepository:        deps.UserProgramRepository,
-		userExerciseRecordRepository: deps.UserExerciseRecordRepository,
-		exerciseRepository:           deps.ExerciseRepository,
+		userRepository:        deps.UserRepository,
+		programRepository:     deps.ProgramRepository,
+		userProgramRepository: deps.UserProgramRepository,
+		userResultRepository:  deps.UserResultRepository,
+		exerciseRepository:    deps.ExerciseRepository,
 	}
 
 	opts := []tg_bot.Option{

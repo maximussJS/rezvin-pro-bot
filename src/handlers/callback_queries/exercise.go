@@ -2,16 +2,16 @@ package callback_queries
 
 import (
 	"context"
+	"fmt"
 	tg_bot "github.com/go-telegram/bot"
 	tg_models "github.com/go-telegram/bot/models"
 	"go.uber.org/dig"
 	"rezvin-pro-bot/src/constants"
-	"rezvin-pro-bot/src/constants/callback_data"
 	"rezvin-pro-bot/src/internal/logger"
-	models2 "rezvin-pro-bot/src/models"
-	repositories2 "rezvin-pro-bot/src/repositories"
-	services2 "rezvin-pro-bot/src/services"
-	utils_context2 "rezvin-pro-bot/src/utils/context"
+	"rezvin-pro-bot/src/models"
+	"rezvin-pro-bot/src/repositories"
+	"rezvin-pro-bot/src/services"
+	"rezvin-pro-bot/src/utils/context"
 	"rezvin-pro-bot/src/utils/inline_keyboards"
 	"rezvin-pro-bot/src/utils/messages"
 	"strings"
@@ -24,64 +24,63 @@ type IExerciseHandler interface {
 type exerciseHandlerDependencies struct {
 	dig.In
 
-	Logger              logger.ILogger                 `name:"Logger"`
-	ConversationService services2.IConversationService `name:"ConversationService"`
-	SenderService       services2.ISenderService       `name:"SenderService"`
+	Logger              logger.ILogger                `name:"Logger"`
+	ConversationService services.IConversationService `name:"ConversationService"`
+	SenderService       services.ISenderService       `name:"SenderService"`
 
-	ProgramRepository            repositories2.IProgramRepository            `name:"ProgramRepository"`
-	UserProgramRepository        repositories2.IUserProgramRepository        `name:"UserProgramRepository"`
-	ExerciseRepository           repositories2.IExerciseRepository           `name:"ExerciseRepository"`
-	UserExerciseRecordRepository repositories2.IUserExerciseRecordRepository `name:"UserExerciseRecordRepository"`
+	UserProgramRepository repositories.IUserProgramRepository `name:"UserProgramRepository"`
+	ExerciseRepository    repositories.IExerciseRepository    `name:"ExerciseRepository"`
+	UserResultRepository  repositories.IUserResultRepository  `name:"UserResultRepository"`
 }
 
 type exerciseHandler struct {
-	logger                       logger.ILogger
-	conversationService          services2.IConversationService
-	senderService                services2.ISenderService
-	programRepository            repositories2.IProgramRepository
-	exerciseRepository           repositories2.IExerciseRepository
-	userProgramRepository        repositories2.IUserProgramRepository
-	userExerciseRecordRepository repositories2.IUserExerciseRecordRepository
+	logger                logger.ILogger
+	conversationService   services.IConversationService
+	senderService         services.ISenderService
+	exerciseRepository    repositories.IExerciseRepository
+	userProgramRepository repositories.IUserProgramRepository
+	userResultRepository  repositories.IUserResultRepository
 }
 
 func NewExerciseHandler(deps exerciseHandlerDependencies) *exerciseHandler {
 	return &exerciseHandler{
-		logger:                       deps.Logger,
-		conversationService:          deps.ConversationService,
-		senderService:                deps.SenderService,
-		programRepository:            deps.ProgramRepository,
-		userProgramRepository:        deps.UserProgramRepository,
-		exerciseRepository:           deps.ExerciseRepository,
-		userExerciseRecordRepository: deps.UserExerciseRecordRepository,
+		logger:                deps.Logger,
+		conversationService:   deps.ConversationService,
+		senderService:         deps.SenderService,
+		userProgramRepository: deps.UserProgramRepository,
+		exerciseRepository:    deps.ExerciseRepository,
+		userResultRepository:  deps.UserResultRepository,
 	}
 }
 
 func (h *exerciseHandler) Handle(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
 	callbackDataQuery := update.CallbackQuery.Data
 
-	if strings.HasPrefix(callbackDataQuery, callback_data.ExerciseAdd) {
+	if strings.HasPrefix(callbackDataQuery, constants.ExerciseAdd) {
 		h.add(ctx, b)
 		return
 	}
 
-	if strings.HasPrefix(callbackDataQuery, callback_data.ExerciseList) {
+	if strings.HasPrefix(callbackDataQuery, constants.ExerciseList) {
 		h.list(ctx, b)
 		return
 	}
 
-	if strings.HasPrefix(callbackDataQuery, callback_data.ExerciseDeleteItem) {
+	if strings.HasPrefix(callbackDataQuery, constants.ExerciseDeleteItem) {
 		h.deleteItem(ctx, b)
 		return
 	}
 
-	if strings.HasPrefix(callbackDataQuery, callback_data.ExerciseDelete) {
+	if strings.HasPrefix(callbackDataQuery, constants.ExerciseDelete) {
 		h.delete(ctx, b)
 		return
 	}
+
+	h.logger.Warn(fmt.Sprintf("Unknown exercise callback query data: %s", callbackDataQuery))
 }
 
 func (h *exerciseHandler) getExerciseName(ctx context.Context, b *tg_bot.Bot, programId uint) string {
-	chatId := utils_context2.GetChatIdFromContext(ctx)
+	chatId := utils_context.GetChatIdFromContext(ctx)
 
 	conversation := h.conversationService.CreateConversation(chatId)
 	defer h.conversationService.DeleteConversation(chatId)
@@ -104,25 +103,25 @@ func (h *exerciseHandler) getExerciseName(ctx context.Context, b *tg_bot.Bot, pr
 }
 
 func (h *exerciseHandler) add(ctx context.Context, b *tg_bot.Bot) {
-	chatId := utils_context2.GetChatIdFromContext(ctx)
-	program := utils_context2.GetProgramFromContext(ctx)
+	chatId := utils_context.GetChatIdFromContext(ctx)
+	program := utils_context.GetProgramFromContext(ctx)
 
 	exerciseMsgId := h.senderService.SendSafe(ctx, b, chatId, messages.EnterExerciseNameMessage())
 
 	exerciseName := h.getExerciseName(ctx, b, program.Id)
 
-	exerciseId := h.exerciseRepository.Create(ctx, models2.Exercise{
+	exerciseId := h.exerciseRepository.Create(ctx, models.Exercise{
 		Name:      exerciseName,
 		ProgramId: program.Id,
 	})
 
 	userPrograms := h.userProgramRepository.GetAllByProgramId(ctx, program.Id)
 
-	records := make([]models2.UserExerciseRecord, 0, 4*len(userPrograms))
+	records := make([]models.UserResult, 0, 4*len(userPrograms))
 
 	for _, userProgram := range userPrograms {
 		for _, rep := range constants.RepsList {
-			records = append(records, models2.UserExerciseRecord{
+			records = append(records, models.UserResult{
 				UserProgramId: userProgram.Id,
 				ExerciseId:    exerciseId,
 				Weight:        0,
@@ -131,7 +130,7 @@ func (h *exerciseHandler) add(ctx context.Context, b *tg_bot.Bot) {
 		}
 	}
 
-	h.userExerciseRecordRepository.CreateMany(ctx, records)
+	h.userResultRepository.CreateMany(ctx, records)
 
 	msg := messages.ExerciseSuccessfullyAddedMessage(exerciseName, program.Name)
 	kb := inline_keyboards.ExerciseOk(program.Id)
@@ -140,8 +139,8 @@ func (h *exerciseHandler) add(ctx context.Context, b *tg_bot.Bot) {
 }
 
 func (h *exerciseHandler) list(ctx context.Context, b *tg_bot.Bot) {
-	chatId := utils_context2.GetChatIdFromContext(ctx)
-	program := utils_context2.GetProgramFromContext(ctx)
+	chatId := utils_context.GetChatIdFromContext(ctx)
+	program := utils_context.GetProgramFromContext(ctx)
 
 	kb := inline_keyboards.ExerciseOk(program.Id)
 
@@ -157,10 +156,10 @@ func (h *exerciseHandler) list(ctx context.Context, b *tg_bot.Bot) {
 }
 
 func (h *exerciseHandler) delete(ctx context.Context, b *tg_bot.Bot) {
-	chatId := utils_context2.GetChatIdFromContext(ctx)
-	program := utils_context2.GetProgramFromContext(ctx)
-	limit := utils_context2.GetLimitFromContext(ctx)
-	offset := utils_context2.GetOffsetFromContext(ctx)
+	chatId := utils_context.GetChatIdFromContext(ctx)
+	program := utils_context.GetProgramFromContext(ctx)
+	limit := utils_context.GetLimitFromContext(ctx)
+	offset := utils_context.GetOffsetFromContext(ctx)
 
 	exercises := h.exerciseRepository.GetByProgramId(ctx, program.Id, limit, offset)
 
@@ -175,15 +174,15 @@ func (h *exerciseHandler) delete(ctx context.Context, b *tg_bot.Bot) {
 	exercisesCount := h.exerciseRepository.CountByProgramId(ctx, program.Id)
 
 	msg := messages.ExerciseDeleteMessage(program.Name)
-	kb := inline_keyboards.ProgramExerciseDeleteList(program.Id, exercises, exercisesCount, limit, offset)
+	kb := inline_keyboards.ExerciseDeleteList(program.Id, exercises, exercisesCount, limit, offset)
 
 	h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 }
 
 func (h *exerciseHandler) deleteItem(ctx context.Context, b *tg_bot.Bot) {
-	chatId := utils_context2.GetChatIdFromContext(ctx)
-	program := utils_context2.GetProgramFromContext(ctx)
-	exercise := utils_context2.GetExerciseFromContext(ctx)
+	chatId := utils_context.GetChatIdFromContext(ctx)
+	program := utils_context.GetProgramFromContext(ctx)
+	exercise := utils_context.GetExerciseFromContext(ctx)
 
 	if exercise.ProgramId != program.Id {
 		msg := messages.ExerciseNotFoundMessage(exercise.Id)
@@ -194,7 +193,7 @@ func (h *exerciseHandler) deleteItem(ctx context.Context, b *tg_bot.Bot) {
 
 	h.exerciseRepository.DeleteById(ctx, exercise.Id)
 
-	h.userExerciseRecordRepository.DeleteByExerciseId(ctx, exercise.Id)
+	h.userResultRepository.DeleteByExerciseId(ctx, exercise.Id)
 
 	msg := messages.ExerciseSuccessfullyDeletedMessage(exercise.Name, program.Name)
 

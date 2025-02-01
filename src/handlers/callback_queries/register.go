@@ -6,7 +6,7 @@ import (
 	tg_bot "github.com/go-telegram/bot"
 	tg_models "github.com/go-telegram/bot/models"
 	"go.uber.org/dig"
-	"rezvin-pro-bot/src/constants/callback_data"
+	"rezvin-pro-bot/src/constants"
 	"rezvin-pro-bot/src/internal/logger"
 	"rezvin-pro-bot/src/models"
 	"rezvin-pro-bot/src/repositories"
@@ -15,6 +15,7 @@ import (
 	"rezvin-pro-bot/src/utils/context"
 	"rezvin-pro-bot/src/utils/inline_keyboards"
 	"rezvin-pro-bot/src/utils/messages"
+	"strings"
 )
 
 type IRegisterHandler interface {
@@ -45,10 +46,14 @@ func NewRegisterHandler(deps registerHandlerDependencies) *registerHandler {
 }
 
 func (h *registerHandler) Handle(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
-	switch update.CallbackQuery.Data {
-	case callback_data.UserRegister:
+	callbackQueryData := update.CallbackQuery.Data
+
+	if strings.HasPrefix(callbackQueryData, constants.UserRegister) {
 		h.registerUser(ctx, b, update)
+		return
 	}
+
+	h.logger.Warn(fmt.Sprintf("Unknown register callback query data: %s", callbackQueryData))
 }
 
 func (h *registerHandler) registerUser(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {

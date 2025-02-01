@@ -10,39 +10,39 @@ import (
 	"rezvin-pro-bot/src/utils"
 )
 
-type userExerciseRecordRepositoryDependencies struct {
+type userResultRepositoryDependencies struct {
 	dig.In
 
 	Database db.IDatabase   `name:"Database"`
 	Config   config.IConfig `name:"Config"`
 }
 
-type IUserExerciseRecordRepository interface {
-	Create(ctx context.Context, record models.UserExerciseRecord)
-	CreateMany(ctx context.Context, records []models.UserExerciseRecord)
-	GetById(ctx context.Context, id uint) *models.UserExerciseRecord
+type IUserResultRepository interface {
+	Create(ctx context.Context, record models.UserResult)
+	CreateMany(ctx context.Context, records []models.UserResult)
+	GetById(ctx context.Context, id uint) *models.UserResult
 	CountAllByUserProgramId(ctx context.Context, userProgramId uint) int64
-	GetAllByUserProgramIdAndExerciseId(ctx context.Context, userProgramId, exerciseId uint) []models.UserExerciseRecord
-	GetAllByUserProgramId(ctx context.Context, userProgramId uint) []models.UserExerciseRecord
-	GetAllByExerciseId(ctx context.Context, exerciseId uint) []models.UserExerciseRecord
-	GetByUserProgramId(ctx context.Context, userProgramId uint, limit, offset int) []models.UserExerciseRecord
-	UpdateById(ctx context.Context, id uint, record models.UserExerciseRecord)
-	UpdateByUserIdAndExerciseId(ctx context.Context, userId int64, exerciseId uint, record models.UserExerciseRecord)
+	GetAllByUserProgramIdAndExerciseId(ctx context.Context, userProgramId, exerciseId uint) []models.UserResult
+	GetAllByUserProgramId(ctx context.Context, userProgramId uint) []models.UserResult
+	GetAllByExerciseId(ctx context.Context, exerciseId uint) []models.UserResult
+	GetByUserProgramId(ctx context.Context, userProgramId uint, limit, offset int) []models.UserResult
+	UpdateById(ctx context.Context, id uint, record models.UserResult)
+	UpdateByUserIdAndExerciseId(ctx context.Context, userId int64, exerciseId uint, record models.UserResult)
 	DeleteByUserProgramId(ctx context.Context, userProgramId uint)
 	DeleteByExerciseId(ctx context.Context, exerciseId uint)
 }
 
-type userExerciseRecordRepository struct {
+type userResultRepository struct {
 	db *gorm.DB
 }
 
-func NewUserExerciseRecordRepository(deps userExerciseRecordRepositoryDependencies) *userExerciseRecordRepository {
-	r := &userExerciseRecordRepository{
+func NewUserResultRepository(deps userResultRepositoryDependencies) *userResultRepository {
+	r := &userResultRepository{
 		db: deps.Database.GetInstance(),
 	}
 
 	if deps.Config.RunMigrations() {
-		err := r.db.AutoMigrate(&models.UserExerciseRecord{})
+		err := r.db.AutoMigrate(&models.UserResult{})
 
 		utils.PanicIfError(err)
 	}
@@ -50,13 +50,13 @@ func NewUserExerciseRecordRepository(deps userExerciseRecordRepositoryDependenci
 	return r
 }
 
-func (r *userExerciseRecordRepository) Create(ctx context.Context, record models.UserExerciseRecord) {
+func (r *userResultRepository) Create(ctx context.Context, record models.UserResult) {
 	err := r.db.WithContext(ctx).Create(&record).Error
 
 	utils.PanicIfNotContextError(err)
 }
 
-func (r *userExerciseRecordRepository) CreateMany(ctx context.Context, records []models.UserExerciseRecord) {
+func (r *userResultRepository) CreateMany(ctx context.Context, records []models.UserResult) {
 	if len(records) == 0 {
 		return
 	}
@@ -66,11 +66,11 @@ func (r *userExerciseRecordRepository) CreateMany(ctx context.Context, records [
 	utils.PanicIfNotContextError(err)
 }
 
-func (r *userExerciseRecordRepository) CountAllByUserProgramId(ctx context.Context, userProgramId uint) int64 {
+func (r *userResultRepository) CountAllByUserProgramId(ctx context.Context, userProgramId uint) int64 {
 	var count int64
 
 	err := r.db.WithContext(ctx).
-		Model(&models.UserExerciseRecord{}).
+		Model(&models.UserResult{}).
 		Where("user_program_id = ?", userProgramId).
 		Count(&count).
 		Error
@@ -80,8 +80,8 @@ func (r *userExerciseRecordRepository) CountAllByUserProgramId(ctx context.Conte
 	return count
 }
 
-func (r *userExerciseRecordRepository) GetById(ctx context.Context, id uint) *models.UserExerciseRecord {
-	var record models.UserExerciseRecord
+func (r *userResultRepository) GetById(ctx context.Context, id uint) *models.UserResult {
+	var record models.UserResult
 
 	err := r.db.WithContext(ctx).
 		Preload("Exercise").
@@ -96,8 +96,8 @@ func (r *userExerciseRecordRepository) GetById(ctx context.Context, id uint) *mo
 	return &record
 }
 
-func (r *userExerciseRecordRepository) GetAllByUserProgramId(ctx context.Context, userProgramId uint) []models.UserExerciseRecord {
-	var records []models.UserExerciseRecord
+func (r *userResultRepository) GetAllByUserProgramId(ctx context.Context, userProgramId uint) []models.UserResult {
+	var records []models.UserResult
 
 	err := r.db.WithContext(ctx).
 		Preload("Exercise").
@@ -111,11 +111,11 @@ func (r *userExerciseRecordRepository) GetAllByUserProgramId(ctx context.Context
 	return records
 }
 
-func (r *userExerciseRecordRepository) GetAllByUserProgramIdAndExerciseId(
+func (r *userResultRepository) GetAllByUserProgramIdAndExerciseId(
 	ctx context.Context,
 	userProgramId, exerciseId uint,
-) []models.UserExerciseRecord {
-	var records []models.UserExerciseRecord
+) []models.UserResult {
+	var records []models.UserResult
 
 	err := r.db.WithContext(ctx).
 		Preload("Exercise").
@@ -129,8 +129,8 @@ func (r *userExerciseRecordRepository) GetAllByUserProgramIdAndExerciseId(
 	return records
 }
 
-func (r *userExerciseRecordRepository) GetAllByExerciseId(ctx context.Context, exerciseId uint) []models.UserExerciseRecord {
-	var records []models.UserExerciseRecord
+func (r *userResultRepository) GetAllByExerciseId(ctx context.Context, exerciseId uint) []models.UserResult {
+	var records []models.UserResult
 
 	err := r.db.WithContext(ctx).
 		Preload("Exercise").
@@ -144,12 +144,12 @@ func (r *userExerciseRecordRepository) GetAllByExerciseId(ctx context.Context, e
 	return records
 }
 
-func (r *userExerciseRecordRepository) GetByUserProgramId(
+func (r *userResultRepository) GetByUserProgramId(
 	ctx context.Context,
 	userProgramId uint,
 	limit, offset int,
-) []models.UserExerciseRecord {
-	var records []models.UserExerciseRecord
+) []models.UserResult {
+	var records []models.UserResult
 
 	err := r.db.WithContext(ctx).
 		Preload("Exercise").
@@ -165,7 +165,7 @@ func (r *userExerciseRecordRepository) GetByUserProgramId(
 	return records
 }
 
-func (r *userExerciseRecordRepository) UpdateById(ctx context.Context, id uint, record models.UserExerciseRecord) {
+func (r *userResultRepository) UpdateById(ctx context.Context, id uint, record models.UserResult) {
 	err := r.db.WithContext(ctx).
 		Where("id = ?", id).
 		Updates(&record).Error
@@ -173,10 +173,10 @@ func (r *userExerciseRecordRepository) UpdateById(ctx context.Context, id uint, 
 	utils.PanicIfNotContextError(err)
 }
 
-func (r *userExerciseRecordRepository) UpdateByUserIdAndExerciseId(
+func (r *userResultRepository) UpdateByUserIdAndExerciseId(
 	ctx context.Context, userId int64,
 	exerciseId uint,
-	record models.UserExerciseRecord,
+	record models.UserResult,
 ) {
 	err := r.db.
 		WithContext(ctx).
@@ -187,19 +187,19 @@ func (r *userExerciseRecordRepository) UpdateByUserIdAndExerciseId(
 	utils.PanicIfNotContextError(err)
 }
 
-func (r *userExerciseRecordRepository) DeleteByUserProgramId(ctx context.Context, userProgramId uint) {
+func (r *userResultRepository) DeleteByUserProgramId(ctx context.Context, userProgramId uint) {
 	err := r.db.WithContext(ctx).
 		Where("user_program_id = ?", userProgramId).
-		Delete(&models.UserExerciseRecord{}).
+		Delete(&models.UserResult{}).
 		Error
 
 	utils.PanicIfNotContextError(err)
 }
 
-func (r *userExerciseRecordRepository) DeleteByExerciseId(ctx context.Context, exerciseId uint) {
+func (r *userResultRepository) DeleteByExerciseId(ctx context.Context, exerciseId uint) {
 	err := r.db.WithContext(ctx).
 		Where("exercise_id = ?", exerciseId).
-		Delete(&models.UserExerciseRecord{}).
+		Delete(&models.UserResult{}).
 		Error
 
 	utils.PanicIfNotContextError(err)

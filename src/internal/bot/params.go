@@ -104,18 +104,18 @@ func (bot *bot) validateParamsMiddleware(next tg_bot.HandlerFunc) tg_bot.Handler
 			newCtx = utils_context.GetContextWithUserProgram(newCtx, userProgram)
 		}
 
-		if params.UserExerciseRecordId != 0 {
-			record := bot.userExerciseRecordRepository.GetById(ctx, params.UserExerciseRecordId)
+		if params.UserResultId != 0 {
+			record := bot.userResultRepository.GetById(ctx, params.UserResultId)
 
 			if record == nil {
-				msg := messages.ClientExerciseRecordNotFoundMessage(params.UserExerciseRecordId)
+				msg := messages.ClientResultNotFoundMessage(params.UserResultId)
 				kb := inline_keyboards.StartOk()
 
 				bot.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 				return
 			}
 
-			newCtx = utils_context.GetContextWithUserExerciseRecord(newCtx, record)
+			newCtx = utils_context.GetContextWithUserResult(newCtx, record)
 		}
 
 		if params.Reps != constants.Zero {

@@ -2,13 +2,13 @@ package inline_keyboards
 
 import (
 	tg_models "github.com/go-telegram/bot/models"
-	"rezvin-pro-bot/src/constants/callback_data"
+	"rezvin-pro-bot/src/constants"
 	"rezvin-pro-bot/src/models"
 	"rezvin-pro-bot/src/types"
 	bot_utils "rezvin-pro-bot/src/utils/bot"
 )
 
-func ProgramExerciseDeleteList(programId uint, exercises []models.Exercise, totalExerciseCount int64, limit, offset int) *tg_models.InlineKeyboardMarkup {
+func ExerciseDeleteList(programId uint, exercises []models.Exercise, totalExerciseCount int64, limit, offset int) *tg_models.InlineKeyboardMarkup {
 	exercisesLen := len(exercises)
 	exerciseKb := make([][]tg_models.InlineKeyboardButton, 0, exercisesLen)
 
@@ -21,7 +21,7 @@ func ProgramExerciseDeleteList(programId uint, exercises []models.Exercise, tota
 		exerciseKb = append(exerciseKb, []tg_models.InlineKeyboardButton{
 			{
 				Text:         exercise.Name,
-				CallbackData: bot_utils.AddParamsToQueryString(callback_data.ExerciseDeleteItem, params),
+				CallbackData: bot_utils.AddParamsToQueryString(constants.ExerciseDeleteItem, params),
 			},
 		})
 	}
@@ -35,7 +35,7 @@ func ProgramExerciseDeleteList(programId uint, exercises []models.Exercise, tota
 	exerciseKb = append(exerciseKb, GetPaginationButtons(
 		exercisesLen,
 		totalExerciseCount,
-		callback_data.ExerciseDelete,
+		constants.ExerciseDelete,
 		limit,
 		offset,
 		nextParams,
@@ -46,7 +46,7 @@ func ProgramExerciseDeleteList(programId uint, exercises []models.Exercise, tota
 	backParams.ProgramId = programId
 
 	return &tg_models.InlineKeyboardMarkup{
-		InlineKeyboard: append(exerciseKb, GetBackButton(callback_data.ProgramSelected, backParams)),
+		InlineKeyboard: append(exerciseKb, GetBackButton(constants.ProgramSelected, backParams)),
 	}
 }
 
@@ -57,7 +57,7 @@ func ExerciseOk(programId uint) *tg_models.InlineKeyboardMarkup {
 
 	return &tg_models.InlineKeyboardMarkup{
 		InlineKeyboard: [][]tg_models.InlineKeyboardButton{
-			GetOkButton(callback_data.ProgramSelected, params),
+			GetOkButton(constants.ProgramSelected, params),
 		},
 	}
 }

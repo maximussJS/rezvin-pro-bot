@@ -25,14 +25,19 @@ func GetRepositoriesDependencies() []Dependency {
 			Token:       "UserProgramRepository",
 		},
 		{
-			Constructor: repositories.NewUserExerciseRecordRepository,
-			Interface:   new(repositories.IUserExerciseRecordRepository),
-			Token:       "UserExerciseRecordRepository",
+			Constructor: repositories.NewUserResultRepository,
+			Interface:   new(repositories.IUserResultRepository),
+			Token:       "UserResultRepository",
 		},
 		{
 			Constructor: repositories.NewLastUserMessageRepository,
 			Interface:   new(repositories.ILastUserMessageRepository),
 			Token:       "LastUserMessageRepository",
+		},
+		{
+			Constructor: repositories.NewMeasureRepository,
+			Interface:   new(repositories.IMeasureRepository),
+			Token:       "MeasureRepository",
 		},
 	}
 }

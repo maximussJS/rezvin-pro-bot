@@ -5,16 +5,16 @@ import (
 	"rezvin-pro-bot/src/models"
 )
 
-func GetContextWithUserExerciseRecord(ctx context.Context, userExercise *models.UserExerciseRecord) context.Context {
-	return context.WithValue(ctx, "UserExerciseRecord", userExercise)
+func GetContextWithUserResult(ctx context.Context, userExercise *models.UserResult) context.Context {
+	return context.WithValue(ctx, "UserResult", userExercise)
 }
 
-func GetUserExerciseRecordFromContext(ctx context.Context) *models.UserExerciseRecord {
-	result := ctx.Value("UserExerciseRecord")
+func GetUserResultFromContext(ctx context.Context) *models.UserResult {
+	result := ctx.Value("UserResult")
 
 	if result == nil {
-		panic("UserExerciseRecord not found in context. Error in code")
+		panic("UserResult not found in context. Error in code")
 	}
 
-	return result.(*models.UserExerciseRecord)
+	return result.(*models.UserResult)
 }

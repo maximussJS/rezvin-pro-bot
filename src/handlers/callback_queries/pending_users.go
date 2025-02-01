@@ -2,16 +2,17 @@ package callback_queries
 
 import (
 	"context"
+	"fmt"
 	tg_bot "github.com/go-telegram/bot"
 	tg_models "github.com/go-telegram/bot/models"
 	"go.uber.org/dig"
-	"rezvin-pro-bot/src/constants/callback_data"
+	"rezvin-pro-bot/src/constants"
 	"rezvin-pro-bot/src/internal/logger"
 	"rezvin-pro-bot/src/models"
 	"rezvin-pro-bot/src/repositories"
-	services2 "rezvin-pro-bot/src/services"
+	"rezvin-pro-bot/src/services"
 	utils_context "rezvin-pro-bot/src/utils/context"
-	inline_keyboards "rezvin-pro-bot/src/utils/inline_keyboards"
+	"rezvin-pro-bot/src/utils/inline_keyboards"
 	"rezvin-pro-bot/src/utils/messages"
 	"strings"
 )
@@ -23,50 +24,49 @@ type IPendingUsersHandler interface {
 type pendingUsersHandlerDependencies struct {
 	dig.In
 
-	Logger              logger.ILogger                 `name:"Logger"`
-	ConversationService services2.IConversationService `name:"ConversationService"`
-	SenderService       services2.ISenderService       `name:"SenderService"`
-	UserRepository      repositories.IUserRepository   `name:"UserRepository"`
+	Logger         logger.ILogger               `name:"Logger"`
+	SenderService  services.ISenderService      `name:"SenderService"`
+	UserRepository repositories.IUserRepository `name:"UserRepository"`
 }
 
 type pendingUsersHandler struct {
-	logger              logger.ILogger
-	conversationService services2.IConversationService
-	senderService       services2.ISenderService
-	userRepository      repositories.IUserRepository
+	logger         logger.ILogger
+	senderService  services.ISenderService
+	userRepository repositories.IUserRepository
 }
 
 func NewPendingUsersHandler(deps pendingUsersHandlerDependencies) *pendingUsersHandler {
 	return &pendingUsersHandler{
-		logger:              deps.Logger,
-		senderService:       deps.SenderService,
-		conversationService: deps.ConversationService,
-		userRepository:      deps.UserRepository,
+		logger:         deps.Logger,
+		senderService:  deps.SenderService,
+		userRepository: deps.UserRepository,
 	}
 }
 
 func (h *pendingUsersHandler) Handle(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
 	callbackQueryData := update.CallbackQuery.Data
 
-	if strings.HasPrefix(callbackQueryData, callback_data.PendingUsersList) {
+	if strings.HasPrefix(callbackQueryData, constants.PendingUsersList) {
 		h.list(ctx, b)
 		return
 	}
 
-	if strings.HasPrefix(callbackQueryData, callback_data.PendingUsersSelected) {
+	if strings.HasPrefix(callbackQueryData, constants.PendingUsersSelected) {
 		h.selected(ctx, b)
 		return
 	}
 
-	if strings.HasPrefix(callbackQueryData, callback_data.PendingUsersApprove) {
+	if strings.HasPrefix(callbackQueryData, constants.PendingUsersApprove) {
 		h.approve(ctx, b)
 		return
 	}
 
-	if strings.HasPrefix(callbackQueryData, callback_data.PendingUsersDecline) {
+	if strings.HasPrefix(callbackQueryData, constants.PendingUsersDecline) {
 		h.decline(ctx, b)
 		return
 	}
+
+	h.logger.Warn(fmt.Sprintf("Unknown pending users callback query data: %s", callbackQueryData))
 }
 
 func (h *pendingUsersHandler) list(ctx context.Context, b *tg_bot.Bot) {

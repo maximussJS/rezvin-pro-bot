@@ -6,7 +6,7 @@ import (
 )
 
 type LastUserMessage struct {
-	MessageId int       `gorm:"index:idx_last_user_message,unique" json:"messageId"`
+	MessageId int       `gorm:"index:idx_last_user_message,unique;not null" json:"messageId"`
 	ChatId    int64     `gorm:"primaryKey;autoIncrement=false" json:"userId"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdateAt  time.Time `json:"updateAt"`

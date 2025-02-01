@@ -6,14 +6,14 @@ import (
 	tg_bot "github.com/go-telegram/bot"
 	tg_models "github.com/go-telegram/bot/models"
 	"go.uber.org/dig"
-	"rezvin-pro-bot/src/constants/callback_data"
+	"rezvin-pro-bot/src/constants"
 	"rezvin-pro-bot/src/internal/logger"
 	"rezvin-pro-bot/src/repositories"
 	"rezvin-pro-bot/src/services"
 	bot_utils "rezvin-pro-bot/src/utils/bot"
 	"rezvin-pro-bot/src/utils/context"
 	"rezvin-pro-bot/src/utils/inline_keyboards"
-	messages2 "rezvin-pro-bot/src/utils/messages"
+	"rezvin-pro-bot/src/utils/messages"
 	"strings"
 )
 
@@ -47,15 +47,17 @@ func NewMainHandler(deps mainHandlerDependencies) *mainHandler {
 func (h *mainHandler) Handle(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
 	callBackQueryData := update.CallbackQuery.Data
 
-	if strings.HasPrefix(callBackQueryData, callback_data.MainBackToMain) {
+	if strings.HasPrefix(callBackQueryData, constants.MainBackToMain) {
 		h.backToMain(ctx, b, update)
 		return
 	}
 
-	if strings.HasPrefix(callBackQueryData, callback_data.MainBackToStart) {
+	if strings.HasPrefix(callBackQueryData, constants.MainBackToStart) {
 		h.backToStart(ctx, b)
 		return
 	}
+
+	h.logger.Warn(fmt.Sprintf("Unknown main callback query data: %s", callBackQueryData))
 }
 
 func (h *mainHandler) backToMain(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
@@ -71,22 +73,22 @@ func (h *mainHandler) backToMain(ctx context.Context, b *tg_bot.Bot, update *tg_
 		name := fmt.Sprintf("%s %s", firstName, lastName)
 
 		kb := inline_keyboards.UserRegister()
-		h.senderService.SendWithKb(ctx, b, chatId, messages2.NeedRegister(name), kb)
+		h.senderService.SendWithKb(ctx, b, chatId, messages.NeedRegister(name), kb)
 		return
 	}
 
 	if user.IsAdmin {
 		kb := inline_keyboards.AdminMain()
-		h.senderService.SendWithKb(ctx, b, chatId, messages2.AdminMainMessage(), kb)
+		h.senderService.SendWithKb(ctx, b, chatId, messages.AdminMainMessage(), kb)
 	} else {
 		if user.IsApproved {
-			msg := messages2.UserMenuMessage(user.GetPublicName())
+			msg := messages.UserMenuMessage(user.GetPublicName())
 			h.senderService.SendWithKb(ctx, b, chatId, msg, inline_keyboards.UserMenu())
 		} else {
 			if user.IsDeclined {
-				h.senderService.Send(ctx, b, chatId, messages2.UserDeclinedMessage(user.GetPublicName()))
+				h.senderService.Send(ctx, b, chatId, messages.UserDeclinedMessage(user.GetPublicName()))
 			} else {
-				h.senderService.Send(ctx, b, chatId, messages2.AlreadyRegistered())
+				h.senderService.Send(ctx, b, chatId, messages.AlreadyRegistered())
 			}
 		}
 	}
@@ -95,5 +97,5 @@ func (h *mainHandler) backToMain(ctx context.Context, b *tg_bot.Bot, update *tg_
 func (h *mainHandler) backToStart(ctx context.Context, b *tg_bot.Bot) {
 	chatId := utils_context.GetChatIdFromContext(ctx)
 
-	h.senderService.Send(ctx, b, chatId, messages2.PressStartMessage())
+	h.senderService.Send(ctx, b, chatId, messages.PressStartMessage())
 }
