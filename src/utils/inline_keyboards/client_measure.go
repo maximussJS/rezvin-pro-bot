@@ -51,11 +51,11 @@ func ClientMeasuresList(clientId int64, measures []models.Measure, totalMeasureC
 	}
 }
 
-func ClientMeasureMenu(clientId int64, measure models.Measure) *tg_models.InlineKeyboardMarkup {
+func ClientMeasureMenu(clientId int64, measureId uint) *tg_models.InlineKeyboardMarkup {
 	params := types.NewEmptyParams()
 
 	params.UserId = clientId
-	params.MeasureId = measure.Id
+	params.MeasureId = measureId
 
 	return &tg_models.InlineKeyboardMarkup{
 		InlineKeyboard: [][]tg_models.InlineKeyboardButton{

@@ -18,11 +18,11 @@ import (
 	"strings"
 )
 
-type IClientMeasureHandler interface {
+type IUserMeasureHandler interface {
 	Handle(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update)
 }
 
-type clientMeasureHandlerDependencies struct {
+type userMeasureHandlerDependencies struct {
 	dig.In
 
 	Logger                logger.ILogger                      `name:"Logger"`
@@ -32,7 +32,7 @@ type clientMeasureHandlerDependencies struct {
 	UserMeasureRepository repositories.IUserMeasureRepository `name:"UserMeasureRepository"`
 }
 
-type clientMeasureHandler struct {
+type userMeasureHandler struct {
 	logger                logger.ILogger
 	senderService         services.ISenderService
 	conversationService   services.IConversationService
@@ -40,8 +40,8 @@ type clientMeasureHandler struct {
 	userMeasureRepository repositories.IUserMeasureRepository
 }
 
-func NewClientMeasureHandler(deps clientMeasureHandlerDependencies) *clientMeasureHandler {
-	return &clientMeasureHandler{
+func NewUserMeasureHandler(deps userMeasureHandlerDependencies) *userMeasureHandler {
+	return &userMeasureHandler{
 		logger:                deps.Logger,
 		senderService:         deps.SenderService,
 		conversationService:   deps.ConversationService,
@@ -50,73 +50,71 @@ func NewClientMeasureHandler(deps clientMeasureHandlerDependencies) *clientMeasu
 	}
 }
 
-func (h *clientMeasureHandler) Handle(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
+func (h *userMeasureHandler) Handle(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
 	callBackQueryData := update.CallbackQuery.Data
 
-	if strings.HasPrefix(callBackQueryData, constants.ClientMeasureList) {
+	if strings.HasPrefix(callBackQueryData, constants.UserMeasureList) {
 		h.list(ctx, b)
 		return
 	}
 
-	if strings.HasPrefix(callBackQueryData, constants.ClientMeasureAdd) {
+	if strings.HasPrefix(callBackQueryData, constants.UserMeasureAdd) {
 		h.add(ctx, b)
 		return
 	}
 
-	if strings.HasPrefix(callBackQueryData, constants.ClientMeasureSelected) {
+	if strings.HasPrefix(callBackQueryData, constants.UserMeasureSelected) {
 		h.selected(ctx, b)
 		return
 	}
 
-	if strings.HasPrefix(callBackQueryData, constants.ClientMeasureDelete) {
+	if strings.HasPrefix(callBackQueryData, constants.UserMeasureDelete) {
 		h.delete(ctx, b)
 		return
 	}
 
-	if strings.HasPrefix(callBackQueryData, constants.ClientMeasureResult) {
+	if strings.HasPrefix(callBackQueryData, constants.UserMeasureResult) {
 		h.result(ctx, b)
 		return
 	}
 
-	h.logger.Warn(fmt.Sprintf("Unknown client measure callback query data: %s", callBackQueryData))
+	h.logger.Warn(fmt.Sprintf("Unknown user measure callback query data: %s", callBackQueryData))
 }
 
-func (h *clientMeasureHandler) selected(ctx context.Context, b *tg_bot.Bot) {
+func (h *userMeasureHandler) selected(ctx context.Context, b *tg_bot.Bot) {
 	chatId := utils_context.GetChatIdFromContext(ctx)
-	user := utils_context.GetUserFromContext(ctx)
 	measure := utils_context.GetMeasureFromContext(ctx)
 
-	msg := messages.SelectClientMeasureOptionMessage(user.GetPrivateName(), measure.Name)
-	kb := inline_keyboards.ClientMeasureMenu(user.Id, measure.Id)
+	msg := messages.SelectUserMeasureOptionMessage(measure.Name)
+	kb := inline_keyboards.UserMeasureMenu(measure.Id)
 
 	h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 }
 
-func (h *clientMeasureHandler) delete(ctx context.Context, b *tg_bot.Bot) {
+func (h *userMeasureHandler) delete(ctx context.Context, b *tg_bot.Bot) {
 	chatId := utils_context.GetChatIdFromContext(ctx)
-	user := utils_context.GetUserFromContext(ctx)
+	user := utils_context.GetCurrentUserFromContext(ctx)
 	measure := utils_context.GetMeasureFromContext(ctx)
 
 	lastUserMeasure := h.userMeasureRepository.GetLastByUserIdAndMeasureId(ctx, user.Id, measure.Id)
 
 	if lastUserMeasure == nil {
-		msg := messages.NoClientMeasureResultsMessage(user.GetPrivateName(), measure.Name)
-		kb := inline_keyboards.ClientMeasureOk(user.Id, measure.Id)
+		msg := messages.NoUserMeasureResultsMessage(measure.Name)
+		kb := inline_keyboards.UserMeasureOk(measure.Id)
 		h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 		return
 	}
 
 	h.userMeasureRepository.DeleteById(ctx, lastUserMeasure.Id)
 
-	msg := messages.ClientLastMeasureDeletedMessage(user.GetPrivateName(), measure.Name)
+	msg := messages.UserLastMeasureDeletedMessage(measure.Name)
 
-	kb := inline_keyboards.ClientMeasureOk(user.Id, measure.Id)
+	kb := inline_keyboards.UserMeasureOk(measure.Id)
 	h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 }
 
-func (h *clientMeasureHandler) list(ctx context.Context, b *tg_bot.Bot) {
+func (h *userMeasureHandler) list(ctx context.Context, b *tg_bot.Bot) {
 	chatId := utils_context.GetChatIdFromContext(ctx)
-	user := utils_context.GetUserFromContext(ctx)
 	limit := utils_context.GetLimitFromContext(ctx)
 	offset := utils_context.GetOffsetFromContext(ctx)
 
@@ -124,26 +122,26 @@ func (h *clientMeasureHandler) list(ctx context.Context, b *tg_bot.Bot) {
 
 	if len(measures) == 0 {
 		msg := messages.MeasuresNotFoundMessage()
-		kb := inline_keyboards.ClientSelectedOk(user.Id)
+		kb := inline_keyboards.UserMenuOk()
 		h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 		return
 	}
 
 	measuresCount := h.measureRepository.CountAll(ctx)
 
-	msg := messages.SelectClientMeasureMessage(user.GetPrivateName())
+	msg := messages.SelectUserMeasureMessage()
 
-	kb := inline_keyboards.ClientMeasuresList(user.Id, measures, measuresCount, limit, offset)
+	kb := inline_keyboards.UserMeasuresList(measures, measuresCount, limit, offset)
 
 	h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 }
 
-func (h *clientMeasureHandler) add(ctx context.Context, b *tg_bot.Bot) {
+func (h *userMeasureHandler) add(ctx context.Context, b *tg_bot.Bot) {
 	chatId := utils_context.GetChatIdFromContext(ctx)
-	user := utils_context.GetUserFromContext(ctx)
+	user := utils_context.GetCurrentUserFromContext(ctx)
 	measure := utils_context.GetMeasureFromContext(ctx)
 
-	msg := messages.EnterClientMeasureValueMessage(user.GetPrivateName(), measure.Name, measure.Units)
+	msg := messages.EnterUserMeasureValueMessage(measure.Name, measure.Units)
 
 	valueMsgId := h.senderService.SendSafe(ctx, b, chatId, msg)
 
@@ -155,36 +153,36 @@ func (h *clientMeasureHandler) add(ctx context.Context, b *tg_bot.Bot) {
 		Value:     value,
 	})
 
-	msg = messages.ClientMeasureAddedMessage(user.GetPrivateName(), measure.Name, measure.Units, value)
+	msg = messages.UserMeasureAddedMessage(measure.Name, measure.Units, value)
 
-	kb := inline_keyboards.ClientMeasureOk(user.Id, measure.Id)
+	kb := inline_keyboards.UserMeasureOk(measure.Id)
 
 	h.senderService.Delete(ctx, b, chatId, valueMsgId)
 	h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 }
 
-func (h *clientMeasureHandler) result(ctx context.Context, b *tg_bot.Bot) {
+func (h *userMeasureHandler) result(ctx context.Context, b *tg_bot.Bot) {
 	chatId := utils_context.GetChatIdFromContext(ctx)
-	user := utils_context.GetUserFromContext(ctx)
+	user := utils_context.GetCurrentUserFromContext(ctx)
 	measure := utils_context.GetMeasureFromContext(ctx)
 
 	userMeasures := h.userMeasureRepository.GetAllByUserIdAndMeasureId(ctx, user.Id, measure.Id)
 
 	if len(userMeasures) == 0 {
-		msg := messages.NoClientMeasureResultsMessage(user.GetPrivateName(), measure.Name)
-		kb := inline_keyboards.ClientMeasureOk(user.Id, measure.Id)
+		msg := messages.NoUserMeasureResultsMessage(measure.Name)
+		kb := inline_keyboards.UserMeasureOk(measure.Id)
 		h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 		return
 	}
 
-	msg := messages.ClientMeasureResultMessage(user.GetPrivateName(), *measure, userMeasures)
+	msg := messages.UserMeasureResultMessage(*measure, userMeasures)
 
-	kb := inline_keyboards.ClientMeasureOk(user.Id, measure.Id)
+	kb := inline_keyboards.UserMeasureOk(measure.Id)
 
 	h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 }
 
-func (h *clientMeasureHandler) getValue(ctx context.Context, b *tg_bot.Bot) float64 {
+func (h *userMeasureHandler) getValue(ctx context.Context, b *tg_bot.Bot) float64 {
 	chatId := utils_context.GetChatIdFromContext(ctx)
 
 	conversation := h.conversationService.CreateConversation(chatId)

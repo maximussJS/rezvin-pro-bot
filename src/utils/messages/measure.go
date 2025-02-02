@@ -30,7 +30,7 @@ func MeasureNotFoundMessage(id uint) string {
 }
 
 func MeasuresNotFoundMessage() string {
-	return "Заміри не знайдено\\. Створи новий замір і повтори спробу\\."
+	return "Роман ще не додав жодного заміру\\."
 }
 
 func SelectMeasureMessage() string {

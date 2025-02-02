@@ -77,4 +77,11 @@ const (
 	UserResultExerciseList     = "urel"
 	UserResultExerciseSelected = "ures"
 	UserResultExerciseReps     = "urer"
+
+	UserMeasurePrefix   = "um"
+	UserMeasureList     = "uml"
+	UserMeasureSelected = "ums"
+	UserMeasureAdd      = "uma"
+	UserMeasureDelete   = "umd"
+	UserMeasureResult   = "umr"
 )

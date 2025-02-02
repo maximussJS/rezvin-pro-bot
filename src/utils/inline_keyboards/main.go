@@ -48,6 +48,9 @@ func UserMenu() *tg_models.InlineKeyboardMarkup {
 				{Text: "📋 Мої програми", CallbackData: constants.UserProgramList},
 			},
 			{
+				{Text: "⏱️ Заміри", CallbackData: constants.UserMeasureList},
+			},
+			{
 				{Text: "🔙 Назад", CallbackData: constants.MainBackToStart},
 			},
 		},

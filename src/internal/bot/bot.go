@@ -43,6 +43,7 @@ type botDependencies struct {
 	ClientMeasureHandler callback_queries.IClientMeasureHandler `name:"ClientMeasureHandler"`
 	UserResultHandler    callback_queries.IUserResultHandler    `name:"UserResultHandler"`
 	UserProgramHandler   callback_queries.IUserProgramHandler   `name:"UserProgramHandler"`
+	UserMeasureHandler   callback_queries.IUserMeasureHandler   `name:"UserMeasureHandler"`
 	MainHandler          callback_queries.IMainHandler          `name:"MainHandler"`
 
 	UserRepository        repositories.IUserRepository        `name:"UserRepository"`
@@ -79,6 +80,7 @@ type bot struct {
 	clientMeasureHandler callback_queries.IClientMeasureHandler
 	userResultHandler    callback_queries.IUserResultHandler
 	userProgramHandler   callback_queries.IUserProgramHandler
+	userMeasureHandler   callback_queries.IUserMeasureHandler
 	mainHandler          callback_queries.IMainHandler
 
 	userRepository        repositories.IUserRepository
@@ -109,6 +111,7 @@ func NewBot(deps botDependencies) *bot {
 		backHandler:          deps.BackHandler,
 		userResultHandler:    deps.UserResultHandler,
 		userProgramHandler:   deps.UserProgramHandler,
+		userMeasureHandler:   deps.UserMeasureHandler,
 		mainHandler:          deps.MainHandler,
 		clientHandler:        deps.ClientHandler,
 		clientProgramHandler: deps.ClientProgramHandler,

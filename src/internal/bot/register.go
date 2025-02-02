@@ -37,6 +37,7 @@ func (bot *bot) registerHandlers() {
 	bot.registerCallbackQueryByPrefix(constants.RegisterPrefix, bot.registerHandler.Handle, bot.emptyMiddlewares())
 	bot.registerCallbackQueryByPrefix(constants.UserProgramPrefix, bot.userProgramHandler.Handle, bot.userMiddlewares())
 	bot.registerCallbackQueryByPrefix(constants.UserResultPrefix, bot.userResultHandler.Handle, bot.userMiddlewares())
+	bot.registerCallbackQueryByPrefix(constants.UserMeasurePrefix, bot.userMeasureHandler.Handle, bot.userMiddlewares())
 
 	bot.registerCallbackQueryByPrefix(constants.ProgramPrefix, bot.programHandler.Handle, bot.adminMiddlewares())
 	bot.registerCallbackQueryByPrefix(constants.ExercisePrefix, bot.exerciseHandler.Handle, bot.adminMiddlewares())
