@@ -33,6 +33,8 @@ const (
 	ClientMeasureList     = "cml"
 	ClientMeasureSelected = "cms"
 	ClientMeasureAdd      = "cma"
+	ClientMeasureDelete   = "cmd"
+	ClientMeasureResult   = "cmr"
 
 	ClientResultPrefix           = "cr"
 	ClientResultList             = "crl"

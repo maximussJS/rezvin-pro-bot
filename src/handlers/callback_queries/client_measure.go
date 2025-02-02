@@ -14,6 +14,7 @@ import (
 	"rezvin-pro-bot/src/utils/context"
 	"rezvin-pro-bot/src/utils/inline_keyboards"
 	"rezvin-pro-bot/src/utils/messages"
+	validate_data "rezvin-pro-bot/src/utils/validate"
 	"strings"
 )
 
@@ -26,6 +27,7 @@ type clientMeasureHandlerDependencies struct {
 
 	Logger                logger.ILogger                      `name:"Logger"`
 	SenderService         services.ISenderService             `name:"SenderService"`
+	ConversationService   services.IConversationService       `name:"ConversationService"`
 	MeasureRepository     repositories.IMeasureRepository     `name:"MeasureRepository"`
 	UserMeasureRepository repositories.IUserMeasureRepository `name:"UserMeasureRepository"`
 }
@@ -33,6 +35,7 @@ type clientMeasureHandlerDependencies struct {
 type clientMeasureHandler struct {
 	logger                logger.ILogger
 	senderService         services.ISenderService
+	conversationService   services.IConversationService
 	measureRepository     repositories.IMeasureRepository
 	userMeasureRepository repositories.IUserMeasureRepository
 }
@@ -41,6 +44,7 @@ func NewClientMeasureHandler(deps clientMeasureHandlerDependencies) *clientMeasu
 	return &clientMeasureHandler{
 		logger:                deps.Logger,
 		senderService:         deps.SenderService,
+		conversationService:   deps.ConversationService,
 		measureRepository:     deps.MeasureRepository,
 		userMeasureRepository: deps.UserMeasureRepository,
 	}
@@ -54,72 +58,60 @@ func (h *clientMeasureHandler) Handle(ctx context.Context, b *tg_bot.Bot, update
 		return
 	}
 
-	if strings.HasPrefix(callBackQueryData, constants.ClientProgramAdd) {
+	if strings.HasPrefix(callBackQueryData, constants.ClientMeasureAdd) {
 		h.add(ctx, b)
 		return
 	}
 
-	if strings.HasPrefix(callBackQueryData, constants.ClientProgramAssign) {
-		h.assign(ctx, b)
-		return
-	}
-
-	if strings.HasPrefix(callBackQueryData, constants.ClientProgramSelected) {
+	if strings.HasPrefix(callBackQueryData, constants.ClientMeasureSelected) {
 		h.selected(ctx, b)
 		return
 	}
 
-	if strings.HasPrefix(callBackQueryData, constants.ClientProgramDelete) {
+	if strings.HasPrefix(callBackQueryData, constants.ClientMeasureDelete) {
 		h.delete(ctx, b)
+		return
+	}
+
+	if strings.HasPrefix(callBackQueryData, constants.ClientMeasureResult) {
+		h.result(ctx, b)
 		return
 	}
 
 	h.logger.Warn(fmt.Sprintf("Unknown client program callback query data: %s", callBackQueryData))
 }
 
-func (h *clientProgramHandler) selected(ctx context.Context, b *tg_bot.Bot) {
+func (h *clientMeasureHandler) selected(ctx context.Context, b *tg_bot.Bot) {
 	chatId := utils_context.GetChatIdFromContext(ctx)
 	user := utils_context.GetUserFromContext(ctx)
-	userProgram := utils_context.GetUserProgramFromContext(ctx)
+	measure := utils_context.GetMeasureFromContext(ctx)
 
-	if userProgram.UserId != user.Id {
-		h.logger.Error(fmt.Sprintf("UserProgram %d not assigned for user %d", userProgram.Id, user.Id))
-		msg := messages.ClientProgramNotAssignedMessage(user.GetPrivateName(), userProgram.Name())
-		kb := inline_keyboards.ClientSelectedOk(user.Id)
-		h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
-		return
-	}
-
-	msg := messages.SelectClientProgramOptionMessage(user.GetPrivateName(), userProgram.Name())
-	kb := inline_keyboards.ClientProgramMenu(user.Id, *userProgram)
+	msg := messages.SelectClientMeasureOptionMessage(user.GetPrivateName(), measure.Name)
+	kb := inline_keyboards.ClientMeasureMenu(user.Id, *measure)
 
 	h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 }
 
-func (h *clientProgramHandler) delete(ctx context.Context, b *tg_bot.Bot) {
+func (h *clientMeasureHandler) delete(ctx context.Context, b *tg_bot.Bot) {
 	chatId := utils_context.GetChatIdFromContext(ctx)
 	user := utils_context.GetUserFromContext(ctx)
-	userProgram := utils_context.GetUserProgramFromContext(ctx)
+	measure := utils_context.GetMeasureFromContext(ctx)
 
-	if userProgram.UserId != user.Id {
-		h.logger.Error(fmt.Sprintf("UserProgram %d not assigned for user %d", userProgram.Id, user.Id))
-		msg := messages.ClientProgramNotAssignedMessage(user.GetPrivateName(), userProgram.Name())
-		kb := inline_keyboards.ClientSelectedOk(user.Id)
+	lastUserMeasure := h.userMeasureRepository.GetLastByUserIdAndMeasureId(ctx, user.Id, measure.Id)
+
+	if lastUserMeasure == nil {
+		msg := messages.NoClientMeasureResultsMessage(user.GetPrivateName(), measure.Name)
+		kb := inline_keyboards.ClientMeasureOk(user.Id, measure.Id)
 		h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 		return
 	}
 
-	h.userProgramRepository.DeleteById(ctx, userProgram.Id)
-	h.userResultRepository.DeleteByUserProgramId(ctx, userProgram.Id)
+	h.userMeasureRepository.DeleteById(ctx, lastUserMeasure.Id)
 
-	userMsg := messages.UserProgramUnassignedMessage(userProgram.Name())
-	userKb := inline_keyboards.UserMenuOk()
-	h.senderService.SendWithKb(ctx, b, user.Id, userMsg, userKb)
+	msg := messages.ClientLastMeasureDeletedMessage(user.GetPrivateName(), measure.Name)
 
-	adminMsg := messages.ClientProgramDeletedMessage(user.GetPrivateName(), userProgram.Name())
-	adminKb := inline_keyboards.ClientSelectedOk(user.Id)
-
-	h.senderService.SendWithKb(ctx, b, chatId, adminMsg, adminKb)
+	kb := inline_keyboards.ClientMeasureOk(user.Id, measure.Id)
+	h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 }
 
 func (h *clientMeasureHandler) list(ctx context.Context, b *tg_bot.Bot) {
@@ -128,16 +120,16 @@ func (h *clientMeasureHandler) list(ctx context.Context, b *tg_bot.Bot) {
 	limit := utils_context.GetLimitFromContext(ctx)
 	offset := utils_context.GetOffsetFromContext(ctx)
 
-	measures := h.userMeasureRepository.GetByUserId(ctx, user.Id, limit, offset)
+	measures := h.measureRepository.GetAll(ctx, limit, offset)
 
 	if len(measures) == 0 {
-		msg := messages.NoClientMeasureMessage(user.GetPrivateName())
+		msg := messages.MeasuresNotFoundMessage()
 		kb := inline_keyboards.ClientSelectedOk(user.Id)
 		h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 		return
 	}
 
-	measuresCount := h.userMeasureRepository.CountAllByUserId(ctx, user.Id)
+	measuresCount := h.measureRepository.CountAll(ctx)
 
 	msg := messages.SelectClientMeasureMessage(user.GetPrivateName())
 
@@ -146,70 +138,66 @@ func (h *clientMeasureHandler) list(ctx context.Context, b *tg_bot.Bot) {
 	h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 }
 
-func (h *clientProgramHandler) add(ctx context.Context, b *tg_bot.Bot) {
+func (h *clientMeasureHandler) add(ctx context.Context, b *tg_bot.Bot) {
 	chatId := utils_context.GetChatIdFromContext(ctx)
 	user := utils_context.GetUserFromContext(ctx)
-	limit := utils_context.GetLimitFromContext(ctx)
-	offset := utils_context.GetOffsetFromContext(ctx)
+	measure := utils_context.GetMeasureFromContext(ctx)
 
-	programs := h.programRepository.GetNotAssignedToUser(ctx, user.Id, limit, offset)
+	msg := messages.EnterClientMeasureValueMessage(user.GetPrivateName(), measure.Name, measure.Units)
 
-	if len(programs) == 0 {
-		msg := messages.NoProgramsForClientMessage(user.GetPrivateName())
-		kb := inline_keyboards.ClientSelectedOk(user.Id)
+	valueMsgId := h.senderService.SendSafe(ctx, b, chatId, msg)
+
+	value := h.getValue(ctx, b)
+
+	h.userMeasureRepository.Create(ctx, models.UserMeasure{
+		UserId:    user.Id,
+		MeasureId: measure.Id,
+		Value:     value,
+	})
+
+	msg = messages.ClientMeasureAddedMessage(user.GetPrivateName(), measure.Name, measure.Units, value)
+
+	kb := inline_keyboards.ClientMeasureOk(user.Id, measure.Id)
+
+	h.senderService.Delete(ctx, b, chatId, valueMsgId)
+	h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
+}
+
+func (h *clientMeasureHandler) result(ctx context.Context, b *tg_bot.Bot) {
+	chatId := utils_context.GetChatIdFromContext(ctx)
+	user := utils_context.GetUserFromContext(ctx)
+	measure := utils_context.GetMeasureFromContext(ctx)
+
+	userMeasures := h.userMeasureRepository.GetAllByUserIdAndMeasureId(ctx, user.Id, measure.Id)
+
+	if len(userMeasures) == 0 {
+		msg := messages.NoClientMeasureResultsMessage(user.GetPrivateName(), measure.Name)
+		kb := inline_keyboards.ClientMeasureOk(user.Id, measure.Id)
 		h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 		return
 	}
 
-	programsCount := h.programRepository.CountNotAssignedToUser(ctx, user.Id)
+	msg := messages.ClientMeasureResultMessage(user.GetPrivateName(), *measure, userMeasures)
 
-	msg := messages.SelectClientProgramMessage(user.GetPrivateName())
-
-	kb := inline_keyboards.ClientProgramAssignList(user.Id, programs, programsCount, limit, offset)
+	kb := inline_keyboards.ClientMeasureOk(user.Id, measure.Id)
 
 	h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 }
 
-func (h *clientProgramHandler) assign(ctx context.Context, b *tg_bot.Bot) {
+func (h *clientMeasureHandler) getValue(ctx context.Context, b *tg_bot.Bot) float64 {
 	chatId := utils_context.GetChatIdFromContext(ctx)
-	user := utils_context.GetUserFromContext(ctx)
-	program := utils_context.GetProgramFromContext(ctx)
 
-	userProgram := h.userProgramRepository.GetByUserIdAndProgramId(ctx, user.Id, program.Id)
+	conversation := h.conversationService.CreateConversation(chatId)
+	defer h.conversationService.DeleteConversation(chatId)
 
-	if userProgram != nil {
-		msg := messages.ClientProgramAlreadyAssignedMessage(user.GetPrivateName(), program.Name)
-		kb := inline_keyboards.ClientSelectedOk(user.Id)
-		h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
-		return
+	answer := conversation.WaitAnswer()
+
+	value, err := validate_data.ValidateValueAnswer(answer)
+
+	if err != nil {
+		h.senderService.Send(ctx, b, chatId, err.Error())
+		return h.getValue(ctx, b)
 	}
 
-	userProgramId := h.userProgramRepository.Create(ctx, models.UserProgram{
-		UserId:    user.Id,
-		ProgramId: program.Id,
-	})
-
-	records := make([]models.UserResult, 0, 4*len(program.Exercises))
-
-	for _, exercise := range program.Exercises {
-		for _, rep := range constants.RepsList {
-			records = append(records, models.UserResult{
-				UserProgramId: userProgramId,
-				ExerciseId:    exercise.Id,
-				Weight:        0,
-				Reps:          uint(rep),
-			})
-		}
-	}
-
-	h.userResultRepository.CreateMany(ctx, records)
-
-	userMsg := messages.UserProgramAssignedMessage(program.Name)
-	userKb := inline_keyboards.UserMenuOk()
-	h.senderService.SendWithKb(ctx, b, user.Id, userMsg, userKb)
-
-	adminMsg := messages.ClientProgramAssignedMessage(user.GetPrivateName(), program.Name)
-	adminKb := inline_keyboards.ClientSelectedOk(user.Id)
-
-	h.senderService.SendWithKb(ctx, b, chatId, adminMsg, adminKb)
+	return value
 }

@@ -8,7 +8,7 @@ import (
 	bot_utils "rezvin-pro-bot/src/utils/bot"
 )
 
-func ClientMeasuresList(clientId int64, measures []models.UserMeasure, totalMeasureCount int64, limit, offset int) *tg_models.InlineKeyboardMarkup {
+func ClientMeasuresList(clientId int64, measures []models.Measure, totalMeasureCount int64, limit, offset int) *tg_models.InlineKeyboardMarkup {
 	measuresLen := len(measures)
 	measuresKb := make([][]tg_models.InlineKeyboardButton, 0, measuresLen)
 
@@ -16,11 +16,11 @@ func ClientMeasuresList(clientId int64, measures []models.UserMeasure, totalMeas
 		params := types.NewEmptyParams()
 
 		params.UserId = clientId
-		params.UserMeasureId = measure.Id
+		params.MeasureId = measure.Id
 
 		measuresKb = append(measuresKb, []tg_models.InlineKeyboardButton{
 			{
-				Text:         measure.Name(),
+				Text:         measure.Name,
 				CallbackData: bot_utils.AddParamsToQueryString(constants.ClientMeasureSelected, params),
 			},
 		})
@@ -48,5 +48,42 @@ func ClientMeasuresList(clientId int64, measures []models.UserMeasure, totalMeas
 
 	return &tg_models.InlineKeyboardMarkup{
 		InlineKeyboard: append(measuresKb, GetBackButton(constants.ClientSelected, backParams)),
+	}
+}
+
+func ClientMeasureMenu(clientId int64, measure models.Measure) *tg_models.InlineKeyboardMarkup {
+	params := types.NewEmptyParams()
+
+	params.UserId = clientId
+	params.MeasureId = measure.Id
+
+	return &tg_models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]tg_models.InlineKeyboardButton{
+			{
+				{Text: "🚀 Переглянути результати заміру", CallbackData: bot_utils.AddParamsToQueryString(constants.ClientMeasureResult, params)},
+			},
+			{
+				{Text: "➕️ Внести результат заміру", CallbackData: bot_utils.AddParamsToQueryString(constants.ClientMeasureAdd, params)},
+			},
+			{
+				{Text: "➖ Видалити останній результат заміру", CallbackData: bot_utils.AddParamsToQueryString(constants.ClientMeasureDelete, params)},
+			},
+			{
+				{Text: "🔙 Назад", CallbackData: bot_utils.AddParamsToQueryString(constants.ClientMeasureList, params)},
+			},
+		},
+	}
+}
+
+func ClientMeasureOk(clientId int64, measureId uint) *tg_models.InlineKeyboardMarkup {
+	params := types.NewEmptyParams()
+
+	params.UserId = clientId
+	params.MeasureId = measureId
+
+	return &tg_models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]tg_models.InlineKeyboardButton{
+			GetOkButton(constants.ClientMeasureSelected, params),
+		},
 	}
 }

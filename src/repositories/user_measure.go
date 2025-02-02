@@ -20,13 +20,10 @@ type userMeasureRepositoryDependencies struct {
 type IUserMeasureRepository interface {
 	Create(ctx context.Context, record models.UserMeasure)
 	GetById(ctx context.Context, id uint) *models.UserMeasure
-	CountAllByMeasureId(ctx context.Context, measureId uint) int64
-	GetAllByMeasureId(ctx context.Context, measureId uint) []models.UserMeasure
-	GetByMeasureId(ctx context.Context, measureId uint, limit, offset int) []models.UserMeasure
-	CountAllByUserId(ctx context.Context, userId int64) int64
-	GetByUserId(ctx context.Context, userId int64, limit, offset int) []models.UserMeasure
-	UpdateById(ctx context.Context, id uint, record models.UserMeasure)
+	GetAllByUserIdAndMeasureId(ctx context.Context, userId int64, measureId uint) []models.UserMeasure
+	DeleteById(ctx context.Context, id uint)
 	DeleteByMeasureId(ctx context.Context, measureId uint)
+	GetLastByUserIdAndMeasureId(ctx context.Context, userId int64, measureId uint) *models.UserMeasure
 }
 
 type userMeasureRepository struct {
@@ -53,32 +50,35 @@ func (r *userMeasureRepository) Create(ctx context.Context, record models.UserMe
 	utils.PanicIfNotContextError(err)
 }
 
-func (r *userMeasureRepository) CountAllByMeasureId(ctx context.Context, measureId uint) int64 {
-	var count int64
+func (r *userMeasureRepository) GetAllByUserIdAndMeasureId(ctx context.Context, userId int64, measureId uint) []models.UserMeasure {
+	var records []models.UserMeasure
 
 	err := r.db.WithContext(ctx).
-		Model(&models.UserMeasure{}).
-		Where("measure_id = ?", measureId).
-		Count(&count).
+		Preload("Measure").
+		Where("user_id = ? AND measure_id = ?", userId, measureId).
+		Order("created_at asc").
+		Find(&records).
 		Error
 
 	utils.PanicIfNotContextError(err)
 
-	return count
+	return records
 }
 
-func (r *userMeasureRepository) CountAllByUserId(ctx context.Context, userId int64) int64 {
-	var count int64
+func (r *userMeasureRepository) GetLastByUserIdAndMeasureId(ctx context.Context, userId int64, measureId uint) *models.UserMeasure {
+	var record models.UserMeasure
 
 	err := r.db.WithContext(ctx).
-		Model(&models.UserMeasure{}).
-		Where("user_id = ?", userId).
-		Count(&count).
+		Where("user_id = ? AND measure_id = ?", userId, measureId).
+		Order("created_at desc").
+		First(&record).
 		Error
 
-	utils.PanicIfNotContextError(err)
+	if err != nil && utils.IsRecordNotFoundError(err) {
+		return nil
+	}
 
-	return count
+	return &record
 }
 
 func (r *userMeasureRepository) GetById(ctx context.Context, id uint) *models.UserMeasure {
@@ -97,60 +97,11 @@ func (r *userMeasureRepository) GetById(ctx context.Context, id uint) *models.Us
 	return &record
 }
 
-func (r *userMeasureRepository) GetAllByMeasureId(ctx context.Context, measureId uint) []models.UserMeasure {
-	var records []models.UserMeasure
-
-	err := r.db.WithContext(ctx).
-		Where("measure_id = ?", measureId).
-		Find(&records).
-		Error
-
-	utils.PanicIfNotContextError(err)
-
-	return records
-}
-
-func (r *userMeasureRepository) GetByMeasureId(
-	ctx context.Context,
-	measureId, limit, offset int,
-) []models.UserMeasure {
-	var records []models.UserMeasure
-
-	err := r.db.WithContext(ctx).
-		Where("measure_id = ?", measureId).
-		Limit(limit).
-		Offset(offset).
-		Find(&records).
-		Error
-
-	utils.PanicIfNotContextError(err)
-
-	return records
-}
-
-func (r *userMeasureRepository) GetByUserId(
-	ctx context.Context,
-	userId int64,
-	limit, offset int,
-) []models.UserMeasure {
-	var records []models.UserMeasure
-
-	err := r.db.WithContext(ctx).
-		Where("user_id = ?", userId).
-		Limit(limit).
-		Offset(offset).
-		Find(&records).
-		Error
-
-	utils.PanicIfNotContextError(err)
-
-	return records
-}
-
-func (r *userMeasureRepository) UpdateById(ctx context.Context, id uint, record models.UserMeasure) {
+func (r *userMeasureRepository) DeleteById(ctx context.Context, id uint) {
 	err := r.db.WithContext(ctx).
 		Where("id = ?", id).
-		Updates(&record).Error
+		Delete(&models.UserMeasure{}).
+		Error
 
 	utils.PanicIfNotContextError(err)
 }

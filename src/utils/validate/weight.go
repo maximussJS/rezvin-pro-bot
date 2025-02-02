@@ -7,7 +7,7 @@ import (
 )
 
 func ValidateWeightAnswer(text string) (int, error) {
-	weight, err := strconv.Atoi(text)
+	weight, err := strconv.Atoi(strings.TrimSpace(text))
 
 	if err != nil {
 		return 0, fmt.Errorf("введіть число від 0 до 1000")
@@ -18,6 +18,20 @@ func ValidateWeightAnswer(text string) (int, error) {
 	}
 
 	return weight, nil
+}
+
+func ValidateValueAnswer(text string) (float64, error) {
+	value, err := strconv.ParseFloat(strings.TrimSpace(text), 64)
+
+	if err != nil {
+		return 0, fmt.Errorf("введіть число від 0.0 до 200.0")
+	}
+
+	if value < 0 || value > 200 {
+		return 0, fmt.Errorf("введіть число від 0.0 до 200.0")
+	}
+
+	return value, nil
 }
 
 func ValidateStringAnswer(text string) (string, error) {
