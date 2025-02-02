@@ -45,7 +45,7 @@ func NewUserProgramHandler(deps userProgramHandlerDependencies) *userProgramHand
 func (h *userProgramHandler) Handle(ctx context.Context, b *tg_bot.Bot, update *tg_models.Update) {
 	callBackQueryData := update.CallbackQuery.Data
 
-	if callBackQueryData == constants.UserProgramList {
+	if strings.HasPrefix(callBackQueryData, constants.UserProgramList) {
 		h.list(ctx, b)
 		return
 	}
