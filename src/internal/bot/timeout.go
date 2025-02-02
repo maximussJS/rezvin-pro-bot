@@ -25,6 +25,9 @@ func (bot *bot) timeoutMiddleware(next tg_bot.HandlerFunc) tg_bot.HandlerFunc {
 
 		select {
 		case <-childCtx.Done():
+			if bot.conversationService.IsConversationExists(chatId) {
+				bot.conversationService.DeleteConversation(chatId)
+			}
 			bot.senderService.Send(ctx, b, chatId, messages.RequestTimeoutMessage())
 			return
 		case <-doneCh:
