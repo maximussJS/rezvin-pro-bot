@@ -2,6 +2,7 @@ package callback_queries
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	tg_bot "github.com/go-telegram/bot"
 	tg_models "github.com/go-telegram/bot/models"
@@ -79,13 +80,17 @@ func (h *exerciseHandler) Handle(ctx context.Context, b *tg_bot.Bot, update *tg_
 	h.logger.Warn(fmt.Sprintf("Unknown exercise callback query data: %s", callbackDataQuery))
 }
 
-func (h *exerciseHandler) getExerciseName(ctx context.Context, b *tg_bot.Bot, programId uint) string {
+func (h *exerciseHandler) getExerciseName(ctx context.Context, b *tg_bot.Bot, programId uint) (string, error) {
 	chatId := utils_context.GetChatIdFromContext(ctx)
 
 	conversation := h.conversationService.CreateConversation(chatId)
 	defer h.conversationService.DeleteConversation(chatId)
 
 	exerciseName := conversation.WaitAnswer()
+
+	if ctx.Err() != nil {
+		return "", errors.New("context canceled")
+	}
 
 	if strings.TrimSpace(exerciseName) == "" {
 		h.senderService.Send(ctx, b, chatId, messages.EmptyMessage())
@@ -99,7 +104,7 @@ func (h *exerciseHandler) getExerciseName(ctx context.Context, b *tg_bot.Bot, pr
 		return h.getExerciseName(ctx, b, programId)
 	}
 
-	return exerciseName
+	return exerciseName, nil
 }
 
 func (h *exerciseHandler) add(ctx context.Context, b *tg_bot.Bot) {
@@ -108,7 +113,12 @@ func (h *exerciseHandler) add(ctx context.Context, b *tg_bot.Bot) {
 
 	exerciseMsgId := h.senderService.SendSafe(ctx, b, chatId, messages.EnterExerciseNameMessage())
 
-	exerciseName := h.getExerciseName(ctx, b, program.Id)
+	exerciseName, err := h.getExerciseName(ctx, b, program.Id)
+
+	if err != nil {
+		h.senderService.Delete(context.Background(), b, chatId, exerciseMsgId)
+		return
+	}
 
 	exerciseId := h.exerciseRepository.Create(ctx, models.Exercise{
 		Name:      exerciseName,

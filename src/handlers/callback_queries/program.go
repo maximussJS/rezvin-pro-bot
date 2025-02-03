@@ -2,6 +2,7 @@ package callback_queries
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	tg_bot "github.com/go-telegram/bot"
 	tg_models "github.com/go-telegram/bot/models"
@@ -91,13 +92,17 @@ func (h *programHandler) menu(ctx context.Context, b *tg_bot.Bot) {
 	h.senderService.SendWithKb(ctx, b, chatId, msg, inline_keyboards.ProgramMenu())
 }
 
-func (h *programHandler) getProgramName(ctx context.Context, b *tg_bot.Bot) string {
+func (h *programHandler) getProgramName(ctx context.Context, b *tg_bot.Bot) (string, error) {
 	chatId := utils_context.GetChatIdFromContext(ctx)
 
 	conversation := h.conversationService.CreateConversation(chatId)
 	defer h.conversationService.DeleteConversation(chatId)
 
 	programName := conversation.WaitAnswer()
+
+	if ctx.Err() != nil {
+		return "", errors.New("context canceled")
+	}
 
 	if strings.TrimSpace(programName) == "" {
 		h.senderService.Send(ctx, b, chatId, messages.EmptyMessage())
@@ -111,7 +116,7 @@ func (h *programHandler) getProgramName(ctx context.Context, b *tg_bot.Bot) stri
 		return h.getProgramName(ctx, b)
 	}
 
-	return programName
+	return programName, nil
 }
 
 func (h *programHandler) add(ctx context.Context, b *tg_bot.Bot) {
@@ -119,7 +124,12 @@ func (h *programHandler) add(ctx context.Context, b *tg_bot.Bot) {
 
 	programMsgId := h.senderService.SendSafe(ctx, b, chatId, messages.EnterProgramNameMessage())
 
-	programName := h.getProgramName(ctx, b)
+	programName, err := h.getProgramName(ctx, b)
+
+	if err != nil {
+		h.senderService.Delete(context.Background(), b, chatId, programMsgId)
+		return
+	}
 
 	programId := h.programRepository.Create(ctx, models.Program{
 		Name: programName,
@@ -170,7 +180,12 @@ func (h *programHandler) rename(ctx context.Context, b *tg_bot.Bot) {
 
 	programMsgId := h.senderService.SendSafe(ctx, b, chatId, messages.EnterProgramNameMessage())
 
-	programName := h.getProgramName(ctx, b)
+	programName, err := h.getProgramName(ctx, b)
+
+	if err != nil {
+		h.senderService.Delete(context.Background(), b, chatId, programMsgId)
+		return
+	}
 
 	h.programRepository.UpdateById(ctx, program.Id, models.Program{
 		Name: programName,

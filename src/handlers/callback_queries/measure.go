@@ -2,6 +2,7 @@ package callback_queries
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	tg_bot "github.com/go-telegram/bot"
 	tg_models "github.com/go-telegram/bot/models"
@@ -101,13 +102,22 @@ func (h *measureHandler) add(ctx context.Context, b *tg_bot.Bot) {
 
 	measureNameMsgId := h.senderService.SendSafe(ctx, b, chatId, messages.EnterMeasureNameMessage())
 
-	measureName := h.getMeasureName(ctx, b)
+	measureName, err := h.getMeasureName(ctx, b)
+
+	if err != nil {
+		h.senderService.Delete(context.Background(), b, chatId, measureNameMsgId)
+		return
+	}
 
 	h.senderService.Delete(ctx, b, chatId, measureNameMsgId)
-
 	unitsMsgId := h.senderService.SendSafe(ctx, b, chatId, messages.EnterMeasureUnitsMessage(measureName))
 
-	units := h.getMeasureUnits(ctx, b)
+	units, err := h.getMeasureUnits(ctx, b)
+
+	if err != nil {
+		h.senderService.Delete(context.Background(), b, chatId, unitsMsgId)
+		return
+	}
 
 	programId := h.measureRepository.Create(ctx, models.Measure{
 		Name:  measureName,
@@ -171,7 +181,12 @@ func (h *measureHandler) rename(ctx context.Context, b *tg_bot.Bot) {
 
 	measureNameMsgId := h.senderService.SendSafe(ctx, b, chatId, messages.EnterMeasureNameMessage())
 
-	measureName := h.getMeasureName(ctx, b)
+	measureName, err := h.getMeasureName(ctx, b)
+
+	if err != nil {
+		h.senderService.Delete(context.Background(), b, chatId, measureNameMsgId)
+		return
+	}
 
 	h.measureRepository.UpdateById(ctx, measure.Id, models.Measure{
 		Name: measureName,
@@ -190,7 +205,12 @@ func (h *measureHandler) changeUnits(ctx context.Context, b *tg_bot.Bot) {
 
 	unitsMsgId := h.senderService.SendSafe(ctx, b, chatId, messages.EnterMeasureUnitsMessage(measure.Name))
 
-	units := h.getMeasureUnits(ctx, b)
+	units, err := h.getMeasureUnits(ctx, b)
+
+	if err != nil {
+		h.senderService.Delete(context.Background(), b, chatId, unitsMsgId)
+		return
+	}
 
 	h.measureRepository.UpdateById(ctx, measure.Id, models.Measure{
 		Units: units,
@@ -203,13 +223,17 @@ func (h *measureHandler) changeUnits(ctx context.Context, b *tg_bot.Bot) {
 	h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 }
 
-func (h *measureHandler) getMeasureName(ctx context.Context, b *tg_bot.Bot) string {
+func (h *measureHandler) getMeasureName(ctx context.Context, b *tg_bot.Bot) (string, error) {
 	chatId := utils_context.GetChatIdFromContext(ctx)
 
 	conversation := h.conversationService.CreateConversation(chatId)
 	defer h.conversationService.DeleteConversation(chatId)
 
 	measureName := conversation.WaitAnswer()
+
+	if ctx.Err() != nil {
+		return "", errors.New("context canceled")
+	}
 
 	if strings.TrimSpace(measureName) == "" {
 		h.senderService.Send(ctx, b, chatId, messages.EmptyMessage())
@@ -223,10 +247,10 @@ func (h *measureHandler) getMeasureName(ctx context.Context, b *tg_bot.Bot) stri
 		return h.getMeasureName(ctx, b)
 	}
 
-	return measureName
+	return measureName, nil
 }
 
-func (h *measureHandler) getMeasureUnits(ctx context.Context, b *tg_bot.Bot) string {
+func (h *measureHandler) getMeasureUnits(ctx context.Context, b *tg_bot.Bot) (string, error) {
 	chatId := utils_context.GetChatIdFromContext(ctx)
 
 	conversation := h.conversationService.CreateConversation(chatId)
@@ -234,10 +258,14 @@ func (h *measureHandler) getMeasureUnits(ctx context.Context, b *tg_bot.Bot) str
 
 	units := conversation.WaitAnswer()
 
+	if ctx.Err() != nil {
+		return "", errors.New("context canceled")
+	}
+
 	if strings.TrimSpace(units) == "" {
 		h.senderService.Send(ctx, b, chatId, messages.EmptyMessage())
 		return h.getMeasureName(ctx, b)
 	}
 
-	return units
+	return units, nil
 }

@@ -2,6 +2,7 @@ package callback_queries
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	tg_bot "github.com/go-telegram/bot"
 	tg_models "github.com/go-telegram/bot/models"
@@ -137,13 +138,17 @@ func (h *clientResultHandler) exerciseList(ctx context.Context, b *tg_bot.Bot) {
 	h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 }
 
-func (h *clientResultHandler) getWeight(ctx context.Context, b *tg_bot.Bot) int {
+func (h *clientResultHandler) getWeight(ctx context.Context, b *tg_bot.Bot) (int, error) {
 	chatId := utils_context.GetChatIdFromContext(ctx)
 
 	conversation := h.conversationService.CreateConversation(chatId)
 	defer h.conversationService.DeleteConversation(chatId)
 
 	answer := conversation.WaitAnswer()
+
+	if ctx.Err() != nil {
+		return 0, errors.New("context canceled")
+	}
 
 	weight, err := validate_data.ValidateWeightAnswer(answer)
 
@@ -152,7 +157,7 @@ func (h *clientResultHandler) getWeight(ctx context.Context, b *tg_bot.Bot) int 
 		return h.getWeight(ctx, b)
 	}
 
-	return weight
+	return weight, nil
 }
 
 func (h *clientResultHandler) exerciseSelected(ctx context.Context, b *tg_bot.Bot) {
@@ -185,7 +190,12 @@ func (h *clientResultHandler) exerciseRepsSelected(ctx context.Context, b *tg_bo
 
 	userMsgId := h.senderService.SendSafe(ctx, b, chatId, userMsg)
 
-	weight := h.getWeight(ctx, b)
+	weight, err := h.getWeight(ctx, b)
+
+	if err != nil {
+		h.senderService.Delete(context.Background(), b, chatId, userMsgId)
+		return
+	}
 
 	h.userResultRepository.UpdateById(ctx, record.Id, models.UserResult{
 		Weight: weight,

@@ -2,6 +2,7 @@ package callback_queries
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	tg_bot "github.com/go-telegram/bot"
 	tg_models "github.com/go-telegram/bot/models"
@@ -147,7 +148,12 @@ func (h *clientMeasureHandler) add(ctx context.Context, b *tg_bot.Bot) {
 
 	valueMsgId := h.senderService.SendSafe(ctx, b, chatId, msg)
 
-	value := h.getValue(ctx, b)
+	value, err := h.getValue(ctx, b)
+
+	if err != nil {
+		h.senderService.Delete(context.Background(), b, chatId, valueMsgId)
+		return
+	}
 
 	h.userMeasureRepository.Create(ctx, models.UserMeasure{
 		UserId:    user.Id,
@@ -184,13 +190,17 @@ func (h *clientMeasureHandler) result(ctx context.Context, b *tg_bot.Bot) {
 	h.senderService.SendWithKb(ctx, b, chatId, msg, kb)
 }
 
-func (h *clientMeasureHandler) getValue(ctx context.Context, b *tg_bot.Bot) float64 {
+func (h *clientMeasureHandler) getValue(ctx context.Context, b *tg_bot.Bot) (float64, error) {
 	chatId := utils_context.GetChatIdFromContext(ctx)
 
 	conversation := h.conversationService.CreateConversation(chatId)
 	defer h.conversationService.DeleteConversation(chatId)
 
 	answer := conversation.WaitAnswer()
+
+	if ctx.Err() != nil {
+		return 0, errors.New("context canceled")
+	}
 
 	value, err := validate_data.ValidateValueAnswer(answer)
 
@@ -199,5 +209,5 @@ func (h *clientMeasureHandler) getValue(ctx context.Context, b *tg_bot.Bot) floa
 		return h.getValue(ctx, b)
 	}
 
-	return value
+	return value, nil
 }

@@ -46,8 +46,6 @@ func (bot *bot) validateParamsMiddleware(next tg_bot.HandlerFunc) tg_bot.Handler
 		chatId := utils_context.GetChatIdFromContext(ctx)
 		params := utils_context.GetParamsFromContext(ctx)
 
-		newCtx := context.WithoutCancel(ctx)
-
 		if params.UserId != 0 {
 			user := bot.userRepository.GetById(ctx, params.UserId)
 
@@ -59,7 +57,7 @@ func (bot *bot) validateParamsMiddleware(next tg_bot.HandlerFunc) tg_bot.Handler
 				return
 			}
 
-			newCtx = utils_context.GetContextWithUser(newCtx, user)
+			ctx = utils_context.GetContextWithUser(ctx, user)
 		}
 
 		if params.ProgramId != 0 {
@@ -73,7 +71,7 @@ func (bot *bot) validateParamsMiddleware(next tg_bot.HandlerFunc) tg_bot.Handler
 				return
 			}
 
-			newCtx = utils_context.GetContextWithProgram(newCtx, program)
+			ctx = utils_context.GetContextWithProgram(ctx, program)
 		}
 
 		if params.ExerciseId != 0 {
@@ -87,7 +85,7 @@ func (bot *bot) validateParamsMiddleware(next tg_bot.HandlerFunc) tg_bot.Handler
 				return
 			}
 
-			newCtx = utils_context.GetContextWithExercise(newCtx, exercise)
+			ctx = utils_context.GetContextWithExercise(ctx, exercise)
 		}
 
 		if params.UserProgramId != 0 {
@@ -101,7 +99,7 @@ func (bot *bot) validateParamsMiddleware(next tg_bot.HandlerFunc) tg_bot.Handler
 				return
 			}
 
-			newCtx = utils_context.GetContextWithUserProgram(newCtx, userProgram)
+			ctx = utils_context.GetContextWithUserProgram(ctx, userProgram)
 		}
 
 		if params.UserResultId != 0 {
@@ -115,7 +113,7 @@ func (bot *bot) validateParamsMiddleware(next tg_bot.HandlerFunc) tg_bot.Handler
 				return
 			}
 
-			newCtx = utils_context.GetContextWithUserResult(newCtx, record)
+			ctx = utils_context.GetContextWithUserResult(ctx, record)
 		}
 
 		if params.MeasureId != 0 {
@@ -129,7 +127,7 @@ func (bot *bot) validateParamsMiddleware(next tg_bot.HandlerFunc) tg_bot.Handler
 				return
 			}
 
-			newCtx = utils_context.GetContextWithMeasure(newCtx, measure)
+			ctx = utils_context.GetContextWithMeasure(ctx, measure)
 		}
 
 		if params.UserMeasureId != 0 {
@@ -143,17 +141,17 @@ func (bot *bot) validateParamsMiddleware(next tg_bot.HandlerFunc) tg_bot.Handler
 				return
 			}
 
-			newCtx = utils_context.GetContextWithUserMeasure(newCtx, userMeasure)
+			ctx = utils_context.GetContextWithUserMeasure(ctx, userMeasure)
 		}
 
 		if params.Reps != constants.Zero {
-			newCtx = utils_context.GetContextWithReps(newCtx, params.Reps)
+			ctx = utils_context.GetContextWithReps(ctx, params.Reps)
 		}
 
 		if params.Limit != 0 {
-			newCtx = utils_context.GetContextWithLimit(newCtx, params.Limit)
+			ctx = utils_context.GetContextWithLimit(ctx, params.Limit)
 		}
 
-		next(utils_context.GetContextWithOffset(newCtx, params.Offset), b, update)
+		next(utils_context.GetContextWithOffset(ctx, params.Offset), b, update)
 	}
 }
