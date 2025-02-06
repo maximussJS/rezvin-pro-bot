@@ -16,11 +16,6 @@ variable "server_name" {
   default     = "rezvin"
 }
 
-variable "image" {
-  description = "Golang Docker image to run"
-  type        = string
-}
-
 variable "private_key_path" {
   description = "Path to the private SSH key for connecting to the server"
   type        = string
@@ -34,36 +29,29 @@ variable "private_key_content" {
   default     = ""
 }
 
-
-# PostgreSQL Data Source Name
 variable "app_env" {
   description = "The application environment (e.g., development, production)"
   type        = string
   default     = "production"
 }
 
-variable "bot_token" {
-  description = "Token for authenticating the bot"
-  type        = string
-  sensitive   = true
-}
-
-variable "alert_chat_id" {
-    description = "Chat ID for sending alerts"
-    type        = string
-    sensitive   = true
+variable "bots" {
+  description = "Map of bot configurations"
+  type = map(object({
+    container_name = string
+    bot_token     = string
+    alert_chat_id = string
+    postgres_schema  = string
+    webhook_secret_token = string
+    image = string
+    admin_name = string
+  }))
 }
 
 variable "postgres_dsn" {
   description = "PostgreSQL Data Source Name containing connection details"
   type        = string
   sensitive   = true
-}
-
-variable "webhook_secret_token" {
-  description = "Telegram Webhook Secret Token"
-  type = string
-  sensitive = true
 }
 
 variable "run_migrations" {

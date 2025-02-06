@@ -79,6 +79,8 @@ resource "null_resource" "upload_certs" {
 
 # Setup Docker and deploy the container with environment variables and mounted certs
 resource "null_resource" "docker_setup" {
+  for_each = var.bots
+
   depends_on = [
     hcloud_server.rezvin,
     null_resource.upload_certs
@@ -104,21 +106,24 @@ resource "null_resource" "docker_setup" {
       "mkdir -p /certs",
 
       # Pull the specified Docker image
-      "docker pull ${var.image}",
+      "docker pull ${each.value.image}",
 
       # Run the Docker container with environment variables and mounted certs directory
       "docker run -d \\",
+      "  --name ${each.value.container_name} \\",
       "  --env POSTGRES_DSN='${replace(var.postgres_dsn, "'", "\\'")}' \\",
       "  --env APP_ENV='${replace(var.app_env, "'", "\\'")}' \\",
       "  --env SSL_CERT_PATH='${replace(var.ssl_cert_path, "'", "\\'")}' \\",
       "  --env SSL_KEY_PATH='${replace(var.ssl_key_path, "'", "\\'")}' \\",
-      "  --env BOT_TOKEN='${replace(var.bot_token, "'", "\\'")}' \\",
-      "  --env ALERT_CHAT_ID='${replace(var.alert_chat_id, "'", "\\'")}' \\",
-      "  --env WEBHOOK_SECRET_TOKEN='${replace(var.webhook_secret_token, "'", "\\'")}' \\",
+      "  --env BOT_TOKEN='${replace(each.value.bot_token, "'", "\\'")}' \\",
+      "  --env ALERT_CHAT_ID='${replace(each.value.alert_chat_id, "'", "\\'")}' \\",
+      "  --env WEBHOOK_SECRET_TOKEN='${replace(each.value.webhook_secret_token, "'", "\\'")}' \\",
+      "  --env POSTGRES_SCHEMA='${replace(each.value.postgres_schema, "'", "\\'")}' \\",
+      "  --env ADMIN_NAME='${replace(each.value.admin_name, "'", "\\'")}' \\",
       "  --env HTTP_PORT='${replace(var.http_port, "'", "\\'")}' \\",
       "  --env RUN_MIGRATIONS='${replace(var.run_migrations, "'", "\\'")}' \\",
       "  -v /certs:/app/certs \\",
-      "  ${var.image}"
+      "  ${each.value.image}"
     ]
   }
 }
