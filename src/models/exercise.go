@@ -3,7 +3,7 @@ package models
 import (
 	"fmt"
 	"gorm.io/gorm"
-	"rezvin-pro-bot/src/config"
+	"rezvin-pro-bot/src/globals"
 	"time"
 )
 
@@ -16,7 +16,7 @@ type Exercise struct {
 }
 
 func (p *Exercise) TableName() string {
-	schema := config.GetPostgresSchema()
+	schema := globals.GetPostgresSchema()
 	return fmt.Sprintf("%s.exercises", schema)
 }
 

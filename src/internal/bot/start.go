@@ -6,11 +6,12 @@ import (
 	"fmt"
 	"net/http"
 	"rezvin-pro-bot/src/constants"
+	"rezvin-pro-bot/src/globals"
 	"time"
 )
 
 func (bot *bot) Start(ctx context.Context) {
-	bot.senderService.Send(ctx, bot.bot, bot.config.AlertChatId(), "Бот запустився і готовий до роботи\\!")
+	bot.senderService.Send(ctx, bot.bot, bot.config.AlertChatId(), fmt.Sprintf("Бот %s запустився і готовий до роботи\\!", globals.AdminName))
 
 	if bot.config.AppEnv() == constants.DevelopmentEnv {
 		bot.startPolling(ctx)

@@ -2,7 +2,7 @@ package messages
 
 import (
 	"fmt"
-	"rezvin-pro-bot/src/constants"
+	"rezvin-pro-bot/src/globals"
 )
 
 func UserNotFoundMessage(userId int64) string {
@@ -10,5 +10,5 @@ func UserNotFoundMessage(userId int64) string {
 }
 
 func UserNotApprovedMessage() string {
-	return fmt.Sprintf("%s ще не підтвердив твою реєстрацію в базі клієнтів\\. Потрібно зачекати підтвердження\\.", constants.AdminName)
+	return fmt.Sprintf("%s ще не підтвердив твою реєстрацію в базі клієнтів\\. Потрібно зачекати підтвердження\\.", globals.AdminName)
 }

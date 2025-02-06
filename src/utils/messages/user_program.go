@@ -2,12 +2,12 @@ package messages
 
 import (
 	"fmt"
-	"rezvin-pro-bot/src/constants"
+	"rezvin-pro-bot/src/globals"
 	"rezvin-pro-bot/src/utils"
 )
 
 func NoUserProgramsMessage() string {
-	return fmt.Sprintf("Програм не знайдено для тебе\\. %s ще не призначив тобі жодної програми\\.", constants.AdminName)
+	return fmt.Sprintf("Програм не знайдено для тебе\\. %s ще не призначив тобі жодної програми\\.", globals.AdminName)
 }
 
 func SelectUserProgramMessage() string {
@@ -27,9 +27,9 @@ func NoRecordsForUserProgramMessage(programName string) string {
 }
 
 func UserProgramAssignedMessage(programName string) string {
-	return fmt.Sprintf("%s призначив тобі нову програму \"*%s*\"\\.", constants.AdminName, utils.EscapeMarkdown(programName))
+	return fmt.Sprintf("%s призначив тобі нову програму \"*%s*\"\\.", globals.AdminName, utils.EscapeMarkdown(programName))
 }
 
 func UserProgramUnassignedMessage(programName string) string {
-	return fmt.Sprintf("%s відмінив тобі програму \"*%s*\"\\.", constants.AdminName, utils.EscapeMarkdown(programName))
+	return fmt.Sprintf("%s відмінив тобі програму \"*%s*\"\\.", globals.AdminName, utils.EscapeMarkdown(programName))
 }

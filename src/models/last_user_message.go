@@ -3,7 +3,7 @@ package models
 import (
 	"fmt"
 	"gorm.io/gorm"
-	"rezvin-pro-bot/src/config"
+	"rezvin-pro-bot/src/globals"
 	"time"
 )
 
@@ -15,7 +15,7 @@ type LastUserMessage struct {
 }
 
 func (u *LastUserMessage) TableName() string {
-	schema := config.GetPostgresSchema()
+	schema := globals.GetPostgresSchema()
 
 	return fmt.Sprintf("%s.last_user_messages", schema)
 }

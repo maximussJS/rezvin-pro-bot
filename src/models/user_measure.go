@@ -3,7 +3,7 @@ package models
 import (
 	"fmt"
 	"gorm.io/gorm"
-	"rezvin-pro-bot/src/config"
+	"rezvin-pro-bot/src/globals"
 	"time"
 )
 
@@ -26,7 +26,7 @@ func (u *UserMeasure) Units() string {
 }
 
 func (u *UserMeasure) TableName() string {
-	schema := config.GetPostgresSchema()
+	schema := globals.GetPostgresSchema()
 	return fmt.Sprintf("%s.user_measures", schema)
 }
 

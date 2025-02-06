@@ -2,7 +2,7 @@ package messages
 
 import (
 	"fmt"
-	"rezvin-pro-bot/src/constants"
+	"rezvin-pro-bot/src/globals"
 	"rezvin-pro-bot/src/utils"
 )
 
@@ -19,11 +19,15 @@ func SelectPendingUserOptionMessage(name string) string {
 }
 
 func UserApprovedMessage(name string) string {
-	return fmt.Sprintf("Привіт, *%s*\\! %s підтвердив твою реєстрацію в базі клієнтів\\. Ти можеш користуватися всіма функціями бота, Введи /start, щоб почати роботу\\.\\.", utils.EscapeMarkdown(name), constants.AdminName)
+	return fmt.Sprintf(
+		"Привіт, *%s*\\! %s підтвердив твою реєстрацію в базі клієнтів\\. Ти можеш користуватися всіма функціями бота, Введи /start, щоб почати роботу\\.\\.",
+		utils.EscapeMarkdown(name),
+		globals.AdminName,
+	)
 }
 
 func UserDeclinedMessage(name string) string {
-	return fmt.Sprintf("Привіт, *%s*\\! %s відхилив твою реєстрацію в базі клієнтів\\. Якщо у тебе є питання, звертайся до нього\\.", utils.EscapeMarkdown(name), constants.AdminName)
+	return fmt.Sprintf("Привіт, *%s*\\! %s відхилив твою реєстрацію в базі клієнтів\\. Якщо у тебе є питання, звертайся до нього\\.", utils.EscapeMarkdown(name), globals.AdminName)
 }
 
 func UserApprovedForAdminMessage(name string) string {
