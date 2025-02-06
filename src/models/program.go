@@ -1,7 +1,9 @@
 package models
 
 import (
+	"fmt"
 	"gorm.io/gorm"
+	"rezvin-pro-bot/src/config"
 	"time"
 )
 
@@ -14,7 +16,8 @@ type Program struct {
 }
 
 func (c *Program) TableName() string {
-	return "programs"
+	schema := config.GetPostgresSchema()
+	return fmt.Sprintf("%s.programs", schema)
 }
 
 func (c *Program) BeforeCreate(tx *gorm.DB) (err error) {

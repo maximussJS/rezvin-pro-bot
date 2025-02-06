@@ -45,8 +45,9 @@ type config struct {
 
 	errorStackTraceSizeInKb int
 
-	postgresDsn   string
-	runMigrations bool
+	postgresDsn    string
+	runMigrations  bool
+	postgresSchema string
 
 	httpPort    string
 	sslCertPath string
@@ -113,6 +114,10 @@ func (c *config) ErrorStackTraceSizeInKb() int {
 
 func (c *config) PostgresDSN() string {
 	return c.postgresDsn
+}
+
+func (c *config) PostgresSchema() string {
+	return c.postgresSchema
 }
 
 func (c *config) RunMigrations() bool {

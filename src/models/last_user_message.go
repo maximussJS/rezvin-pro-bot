@@ -1,7 +1,9 @@
 package models
 
 import (
+	"fmt"
 	"gorm.io/gorm"
+	"rezvin-pro-bot/src/config"
 	"time"
 )
 
@@ -13,7 +15,9 @@ type LastUserMessage struct {
 }
 
 func (u *LastUserMessage) TableName() string {
-	return "last_user_messages"
+	schema := config.GetPostgresSchema()
+
+	return fmt.Sprintf("%s.last_user_messages", schema)
 }
 
 func (u *LastUserMessage) BeforeCreate(tx *gorm.DB) (err error) {

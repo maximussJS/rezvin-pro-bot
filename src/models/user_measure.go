@@ -1,7 +1,9 @@
 package models
 
 import (
+	"fmt"
 	"gorm.io/gorm"
+	"rezvin-pro-bot/src/config"
 	"time"
 )
 
@@ -24,7 +26,8 @@ func (u *UserMeasure) Units() string {
 }
 
 func (u *UserMeasure) TableName() string {
-	return "user_measures"
+	schema := config.GetPostgresSchema()
+	return fmt.Sprintf("%s.user_measures", schema)
 }
 
 func (u *UserMeasure) BeforeCreate(tx *gorm.DB) (err error) {

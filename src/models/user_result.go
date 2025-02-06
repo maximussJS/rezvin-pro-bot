@@ -1,7 +1,9 @@
 package models
 
 import (
+	"fmt"
 	"gorm.io/gorm"
+	"rezvin-pro-bot/src/config"
 	"time"
 )
 
@@ -20,7 +22,8 @@ func (u *UserResult) Name() string {
 }
 
 func (u *UserResult) TableName() string {
-	return "user_exercise_records"
+	schema := config.GetPostgresSchema()
+	return fmt.Sprintf("%s.user_exercise_records", schema)
 }
 
 func (u *UserResult) BeforeCreate(tx *gorm.DB) (err error) {

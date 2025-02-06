@@ -2,6 +2,7 @@ package messages
 
 import (
 	"fmt"
+	"rezvin-pro-bot/src/constants"
 	"rezvin-pro-bot/src/utils"
 )
 
@@ -30,7 +31,7 @@ func MeasureNotFoundMessage(id uint) string {
 }
 
 func MeasuresNotFoundMessage() string {
-	return "Роман ще не додав жодного заміру\\."
+	return fmt.Sprintf("%s ще не додав жодного заміру\\.", constants.AdminName)
 }
 
 func SelectMeasureMessage() string {

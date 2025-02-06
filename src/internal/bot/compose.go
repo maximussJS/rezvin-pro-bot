@@ -4,6 +4,7 @@ import tg_bot "github.com/go-telegram/bot"
 
 func (bot *bot) adminMiddlewares() []tg_bot.Middleware {
 	return []tg_bot.Middleware{
+		bot.skipIfConversationExistsMiddleware,
 		bot.answerCallbackQueryMiddleware,
 		bot.isRegisteredMiddleware,
 		bot.isAdminMiddleware,
@@ -14,6 +15,7 @@ func (bot *bot) adminMiddlewares() []tg_bot.Middleware {
 
 func (bot *bot) userMiddlewares() []tg_bot.Middleware {
 	return []tg_bot.Middleware{
+		bot.skipIfConversationExistsMiddleware,
 		bot.answerCallbackQueryMiddleware,
 		bot.isRegisteredMiddleware,
 		bot.isApprovedMiddleware,
@@ -24,6 +26,7 @@ func (bot *bot) userMiddlewares() []tg_bot.Middleware {
 
 func (bot *bot) mainMiddlewares() []tg_bot.Middleware {
 	return []tg_bot.Middleware{
+		bot.skipIfConversationExistsMiddleware,
 		bot.answerCallbackQueryMiddleware,
 		bot.isRegisteredMiddleware,
 	}
