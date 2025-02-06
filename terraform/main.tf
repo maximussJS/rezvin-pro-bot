@@ -99,31 +99,27 @@ resource "null_resource" "docker_setup" {
     }
 
     inline = [
-      # Update and install Docker
       "apt-get update && apt-get install -y docker.io",
-
-      # Create the certificates directory if it doesn't exist
       "mkdir -p /certs",
-
-      # Pull the specified Docker image
       "docker pull ${each.value.image}",
-
-      # Run the Docker container with environment variables and mounted certs directory
-      "docker run -d \\",
-      "  --name ${each.value.container_name} \\",
-      "  --env POSTGRES_DSN='${replace(var.postgres_dsn, "'", "\\'")}' \\",
-      "  --env APP_ENV='${replace(var.app_env, "'", "\\'")}' \\",
-      "  --env SSL_CERT_PATH='${replace(var.ssl_cert_path, "'", "\\'")}' \\",
-      "  --env SSL_KEY_PATH='${replace(var.ssl_key_path, "'", "\\'")}' \\",
-      "  --env BOT_TOKEN='${replace(each.value.bot_token, "'", "\\'")}' \\",
-      "  --env ALERT_CHAT_ID='${replace(each.value.alert_chat_id, "'", "\\'")}' \\",
-      "  --env WEBHOOK_SECRET_TOKEN='${replace(each.value.webhook_secret_token, "'", "\\'")}' \\",
-      "  --env POSTGRES_SCHEMA='${replace(each.value.postgres_schema, "'", "\\'")}' \\",
-      "  --env ADMIN_NAME='${replace(each.value.admin_name, "'", "\\'")}' \\",
-      "  --env HTTP_PORT='${replace(var.http_port, "'", "\\'")}' \\",
-      "  --env RUN_MIGRATIONS='${replace(var.run_migrations, "'", "\\'")}' \\",
-      "  -v /certs:/app/certs \\",
-      "  ${each.value.image}"
+      <<-EOF
+    docker run -d \
+      --name ${each.value.container_name} \
+      --env POSTGRES_DSN='${replace(var.postgres_dsn, "'", "\\'")}' \
+      --env APP_ENV='${replace(var.app_env, "'", "\\'")}' \
+      --env SSL_CERT_PATH='${replace(var.ssl_cert_path, "'", "\\'")}' \
+      --env SSL_KEY_PATH='${replace(var.ssl_key_path, "'", "\\'")}' \
+      --env BOT_TOKEN='${replace(each.value.bot_token, "'", "\\'")}' \
+      --env ALERT_CHAT_ID='${replace(each.value.alert_chat_id, "'", "\\'")}' \
+      --env WEBHOOK_SECRET_TOKEN='${replace(each.value.webhook_secret_token, "'", "\\'")}' \
+      --env POSTGRES_SCHEMA='${replace(each.value.postgres_schema, "'", "\\'")}' \
+      --env ADMIN_NAME='${replace(each.value.admin_name, "'", "\\'")}' \
+      --env HTTP_PORT='${replace(each.value.http_port, "'", "\\'")}' \
+      --env RUN_MIGRATIONS='${replace(var.run_migrations, "'", "\\'")}' \
+      -v /certs:/app/certs \
+      ${each.value.image}
+  EOF
     ]
+
   }
 }

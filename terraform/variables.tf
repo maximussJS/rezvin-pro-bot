@@ -38,6 +38,7 @@ variable "app_env" {
 variable "bots" {
   description = "Map of bot configurations"
   type = map(object({
+    http_port = string
     container_name = string
     bot_token     = string
     alert_chat_id = string
@@ -64,12 +65,6 @@ variable "request_timeout_in_seconds" {
   description = "Timeout duration for requests in seconds"
   type        = number
   default     = 60
-}
-
-variable "http_port" {
-  description = "Port on which the HTTP server listens"
-  type        = string
-  default     = ":443"
 }
 
 variable "ssl_cert_path" {
