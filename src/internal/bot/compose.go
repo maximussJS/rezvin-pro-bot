@@ -34,10 +34,10 @@ func (bot *bot) mainMiddlewares() []tg_bot.Middleware {
 
 func (bot *bot) defaultMiddlewares() []tg_bot.Middleware {
 	return []tg_bot.Middleware{
+		bot.skipOtherTypesMiddleware,
 		bot.timeoutMiddleware,
 		bot.panicRecoveryMiddleware,
 		bot.chatIdMiddleware,
-		bot.skipOtherTypesMiddleware,
 		bot.forbidParallel,
 	}
 }
