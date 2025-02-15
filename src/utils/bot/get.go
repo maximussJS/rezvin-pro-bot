@@ -36,7 +36,10 @@ func GetChatID(update *models.Update) int64 {
 	}
 
 	if update.CallbackQuery != nil {
-		return update.CallbackQuery.Message.Message.Chat.ID
+		if update.CallbackQuery.Message.Message != nil {
+			return update.CallbackQuery.Message.Message.Chat.ID
+		}
+		panic(fmt.Sprintf("unable to get chat id from update: %v", update))
 	}
 
 	panic(fmt.Sprintf("unable to get chat id from update: %v", update))
